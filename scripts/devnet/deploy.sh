@@ -7,6 +7,7 @@ RPC_URL="${SOLANA_RPC_URL:-https://api.devnet.solana.com}"
 solana config set --url "$RPC_URL" >/dev/null
 solana config set --keypair "$ANCHOR_WALLET" >/dev/null
 
+cargo build-sbf --tools-version v1.57 --install-only
 ./scripts/devnet/prepare-program.sh
 REQUIRE_NON_PLACEHOLDER_ID=1 npm run release:check
 anchor build
