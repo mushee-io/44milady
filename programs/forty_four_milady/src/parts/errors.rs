@@ -60,6 +60,14 @@ pub enum MiladyError {
     InvalidUsdgDecimals,
     #[msg("Reserve factor is outside the supported range.")]
     InvalidReserveFactor,
+    #[msg("Interest-rate kink must be between 0% and 100% utilization.")]
+    InvalidInterestKink,
+    #[msg("Configured maximum borrow APR exceeds the protocol safety ceiling.")]
+    InterestRateTooHigh,
+    #[msg("Clock moved backwards relative to the pool's last accrual timestamp.")]
+    ClockWentBackwards,
+    #[msg("Interest index is zero, decreasing, or otherwise invalid.")]
+    InvalidInterestIndex,
     #[msg("Borrowing is disabled for this lending pool.")]
     BorrowingDisabled,
     #[msg("Borrow would exceed the pool borrow cap.")]
