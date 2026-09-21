@@ -16,7 +16,13 @@ const required = [
   "docs/M6.md",
   "docs/M7.md",
   "docs/M8.md",
+  "docs/M9.md",
   "programs/forty_four_milady/src/parts/interest.rs",
+  "programs/forty_four_milady/src/parts/accounts_liquidation.rs",
+  "programs/forty_four_milady/src/parts/handlers_liquidation.rs",
+  "keeper/package.json",
+  "keeper/src/index.mjs",
+  "keeper/src/policy.mjs",
 ];
 for (const path of required) {
   if (!existsSync(path)) throw new Error(`Missing required file: ${path}`);
@@ -60,6 +66,15 @@ for (const symbol of [
   "close_supplier_position",
   "close_collateral_vault",
   "UsdgRepaid",
+  "update_liquidation_config",
+  "liquidate",
+  "fund_insurance_reserve",
+  "absorb_bad_debt",
+  "recapitalize_bad_debt",
+  "insurance_reserve_usdg",
+  "bad_debt_usdg",
+  "PositionLiquidated",
+  "BadDebtAbsorbed",
 ]) {
   if (!source.includes(symbol)) throw new Error(`Program missing ${symbol}`);
 }
