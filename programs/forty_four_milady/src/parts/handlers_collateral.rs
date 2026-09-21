@@ -2,6 +2,8 @@
         let account = &mut ctx.accounts.credit_account;
         account.owner = ctx.accounts.owner.key();
         account.debt_usdg = 0;
+        account.borrow_index_snapshot_e18 = INDEX_SCALE_E18;
+        account.last_borrow_ts = 0;
         account.collaterals = Vec::new();
         account.last_collateral_value_usd_micro = 0;
         account.last_borrow_limit_usd_micro = 0;
@@ -72,16 +74,24 @@
             .checked_sub(amount)
             .ok_or(MiladyError::MathOverflow)?;
 
-        // Once borrowing is enabled in Milestone 6 this prevents a user from
-        // withdrawing collateral that would push the account below liquidation health.
         if ctx.accounts.credit_account.debt_usdg > 0 {
             let snapshot = compute_portfolio_risk(&ctx.accounts.credit_account, ctx.remaining_accounts)?;
-            require!(snapshot.health_factor_bps > BPS_DENOMINATOR, MiladyError::UnsafeWithdrawal);
+            // Withdrawals must remain within the initial borrowing limit, not merely
+            // above the liquidation threshold.
+            require!(
+                ctx.accounts.credit_account.debt_usdg <= snapshot.borrow_limit_usd_micro,
+                MiladyError::UnsafeWithdrawal
+            );
+            require!(
+                snapshot.health_factor_bps > BPS_DENOMINATOR,
+                MiladyError::UnsafeWithdrawal
+            );
         }
 
         let owner_key = ctx.accounts.owner.key();
         let bump = ctx.accounts.credit_account.bump;
-        let signer_seeds: &[&[u8]] = &[CREDIT_SEED, owner_key.as_ref(), &[bump]];
+        let bump_seed = [bump];
+        let signer_seeds: &[&[u8]] = &[CREDIT_SEED, owner_key.as_ref(), &bump_seed];
         let signer = &[signer_seeds];
 
         let cpi_accounts = TransferChecked {

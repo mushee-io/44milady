@@ -7,10 +7,13 @@ const required = [
   "programs/forty_four_milady/Cargo.toml",
   "programs/forty_four_milady/src/lib.rs",
   "programs/forty_four_milady/src/parts/risk.rs",
+  "programs/forty_four_milady/src/parts/accounts_lending.rs",
+  "programs/forty_four_milady/src/parts/handlers_lending.rs",
   "app/package.json",
   "sdk/src/index.ts",
   "scripts/model-check.mjs",
   "docs/M2-M5.md",
+  "docs/M6.md",
 ];
 for (const path of required) {
   if (!existsSync(path)) throw new Error(`Missing required file: ${path}`);
@@ -34,6 +37,12 @@ for (const symbol of [
   "refresh_health",
   "PriceUpdateV2",
   "compute_portfolio_risk",
+  "initialize_lending_pool",
+  "supply_usdg",
+  "withdraw_supplied_usdg",
+  "borrow_usdg",
+  "LendingPool",
+  "SupplierPosition",
 ]) {
   if (!source.includes(symbol)) throw new Error(`Program missing ${symbol}`);
 }

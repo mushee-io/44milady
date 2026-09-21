@@ -10,6 +10,15 @@ const milestones = [
   ["03", "Collateral vault", "Built"],
   ["04", "Pyth valuation", "Built"],
   ["05", "Risk engine", "Built"],
+  ["06", "USDG liquidity + borrowing", "Built"],
+];
+
+const borrowFlow = [
+  "Supply USDG",
+  "Deposit collateral",
+  "Read fresh Pyth prices",
+  "Calculate LTV + health",
+  "Borrow USDG",
 ];
 
 export default function Home() {
@@ -20,27 +29,41 @@ export default function Home() {
           <p className="eyebrow">SOLANA DEVNET · COLLATERALIZED CREDIT</p>
           <h1>44 Milady</h1>
           <p className="lede">
-            Keep the exposure. Unlock the liquidity. Deposit market-linked collateral,
-            value it through Pyth and measure borrowing power without selling it.
+            Keep the exposure. Unlock the liquidity. Supply USDG or deposit market-linked
+            collateral and borrow against it without selling the underlying exposure.
           </p>
         </div>
-        <button disabled>Wallet wiring after program deploy</button>
+        <button disabled>Devnet deployment pending</button>
       </header>
 
       <section className="grid">
         <article><span>Network</span><strong>Solana Devnet</strong></article>
-        <article><span>Collateral slots</span><strong>8 / account</strong></article>
+        <article><span>Liquidity</span><strong>USDG pool</strong></article>
         <article><span>Valuation</span><strong>Pyth · on-chain checked</strong></article>
-        <article><span>Borrowing</span><strong>Milestone 6</strong></article>
+        <article><span>Borrowing</span><strong>M6 source built</strong></article>
       </section>
 
       <section className="panel">
-        <p className="eyebrow">MILESTONES 2—5</p>
-        <h2>Collateral and risk core</h2>
+        <p className="eyebrow">MILESTONES 2—6</p>
+        <h2>Credit market core</h2>
         <div className="milestone-list">
           {milestones.map(([number, label, status]) => (
             <div className="milestone-row" key={number}>
               <span>{number}</span><strong>{label}</strong><em>{status}</em>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="eyebrow">BORROW FLOW</p>
+        <h2>Liquidity meets collateral.</h2>
+        <div className="milestone-list">
+          {borrowFlow.map((label, index) => (
+            <div className="milestone-row" key={label}>
+              <span>{String(index + 1).padStart(2, "0")}</span>
+              <strong>{label}</strong>
+              <em>{index === borrowFlow.length - 1 ? "USDG" : "→"}</em>
             </div>
           ))}
         </div>

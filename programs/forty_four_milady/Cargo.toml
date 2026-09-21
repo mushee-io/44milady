@@ -20,6 +20,5 @@ idl-build = [
 ]
 
 [dependencies]
-anchor-lang = { version = "0.31.1", features = ["init-if-needed"] }
-anchor-spl = "0.31.1"
-pyth-solana-receiver-sdk = "1.0.1"
+anchor-lang = { version = "=0.31.1", features = ["init-if-needed"] }
+anchor-spl = "=0.31.1"

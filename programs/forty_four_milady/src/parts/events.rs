@@ -75,5 +75,48 @@ pub struct HealthRefreshed {
     pub health_factor_bps: u64,
 }
 
-// -----------------------------------------------------------------------------
-// Errors
+#[event]
+pub struct LendingPoolInitialized {
+    pub lending_pool: Pubkey,
+    pub usdg_mint: Pubkey,
+    pub liquidity_vault: Pubkey,
+    pub borrow_cap_usdg: u64,
+    pub reserve_factor_bps: u16,
+}
+
+#[event]
+pub struct LendingPoolUpdated {
+    pub lending_pool: Pubkey,
+    pub borrow_cap_usdg: u64,
+    pub reserve_factor_bps: u16,
+    pub borrow_enabled: bool,
+}
+
+#[event]
+pub struct UsdgSupplied {
+    pub supplier: Pubkey,
+    pub lending_pool: Pubkey,
+    pub amount: u64,
+    pub supplier_principal_usdg: u64,
+    pub total_supplied_usdg: u64,
+}
+
+#[event]
+pub struct UsdgSupplyWithdrawn {
+    pub supplier: Pubkey,
+    pub lending_pool: Pubkey,
+    pub amount: u64,
+    pub supplier_principal_usdg: u64,
+    pub total_supplied_usdg: u64,
+}
+
+#[event]
+pub struct UsdgBorrowed {
+    pub borrower: Pubkey,
+    pub lending_pool: Pubkey,
+    pub amount: u64,
+    pub new_debt_usdg: u64,
+    pub total_borrowed_usdg: u64,
+    pub borrow_limit_usd_micro: u64,
+    pub health_factor_bps: u64,
+}
