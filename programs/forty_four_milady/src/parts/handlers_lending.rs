@@ -581,7 +581,7 @@
         Ok(())
     }
 
-    fn resolve_repayment_amount(debt_usdg: u64, requested: Option<u64>) -> Result<u64> {
+    pub(crate) fn resolve_repayment_amount(debt_usdg: u64, requested: Option<u64>) -> Result<u64> {
         require!(debt_usdg > 0, MiladyError::NoDebtToRepay);
 
         match requested {
@@ -616,7 +616,7 @@
         )
     }
 
-    fn apply_repayment_accounting(
+    pub(crate) fn apply_repayment_accounting(
         account: &mut CreditAccount,
         pool: &mut LendingPool,
         amount: u64,
