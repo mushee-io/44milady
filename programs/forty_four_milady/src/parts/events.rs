@@ -252,3 +252,38 @@ pub struct BadDebtRecapitalized {
     pub amount: u64,
     pub remaining_bad_debt_usdg: u64,
 }
+
+#[event]
+pub struct AuthorityTransferProposed {
+    pub current_authority: Pubkey,
+    pub pending_authority: Pubkey,
+}
+
+#[event]
+pub struct AuthorityTransferred {
+    pub old_authority: Pubkey,
+    pub new_authority: Pubkey,
+}
+
+#[event]
+pub struct AuthorityTransferCancelled {
+    pub authority: Pubkey,
+}
+
+#[event]
+pub struct EmergencyAuthorityTransferProposed {
+    pub current_emergency_authority: Pubkey,
+    pub pending_emergency_authority: Pubkey,
+}
+
+#[event]
+pub struct EmergencyAuthorityTransferred {
+    pub old_emergency_authority: Pubkey,
+    pub new_emergency_authority: Pubkey,
+}
+
+#[event]
+pub struct TreasuryUpdated {
+    pub old_treasury: Pubkey,
+    pub new_treasury: Pubkey,
+}
