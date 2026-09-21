@@ -43,6 +43,8 @@ export type LendingPoolSnapshot = {
   totalSuppliedUsdg: bigint;
   totalBorrowedUsdg: bigint;
   protocolReservesUsdg: bigint;
+  insuranceReserveUsdg: bigint;
+  badDebtUsdg: bigint;
   borrowCapUsdg: bigint;
   borrowEnabled: boolean;
   reserveFactorBps: number;
@@ -52,6 +54,8 @@ export type LendingPoolSnapshot = {
   kinkUtilizationBps: number;
   lastBorrowAprBps: number;
   lastSupplyAprBps: number;
+  liquidationCloseFactorBps: number;
+  liquidationEnabled: boolean;
 };
 
 export function encodeSymbol(symbol: string): number[] {
@@ -118,8 +122,17 @@ export function supplierPositionPda(
   )[0];
 }
 
+export function netPoolAssets(pool: LendingPoolSnapshot): bigint {
+  const gross =
+    pool.totalSuppliedUsdg +
+    pool.protocolReservesUsdg +
+    pool.insuranceReserveUsdg;
+  if (pool.badDebtUsdg > gross) throw new Error("pool insolvent");
+  return gross - pool.badDebtUsdg;
+}
+
 export function availableLiquidity(pool: LendingPoolSnapshot): bigint {
-  const assets = pool.totalSuppliedUsdg + pool.protocolReservesUsdg;
+  const assets = netPoolAssets(pool);
   if (pool.totalBorrowedUsdg > assets) {
     throw new Error("pool accounting invariant violated");
   }
@@ -133,7 +146,7 @@ export function availableBorrow(snapshot: RiskSnapshot): bigint {
 }
 
 export function utilizationBps(pool: LendingPoolSnapshot): bigint {
-  const assets = pool.totalSuppliedUsdg + pool.protocolReservesUsdg;
+  const assets = netPoolAssets(pool);
   if (assets === 0n) return 0n;
   const value = (pool.totalBorrowedUsdg * 10_000n) / assets;
   return value > 10_000n ? 10_000n : value;
@@ -191,6 +204,28 @@ export function debtAfterRepayment(debtUsdg: bigint, repaymentUsdg: bigint): big
 
 export function canCloseCreditAccount(debtUsdg: bigint, collateralEntries: number): boolean {
   return debtUsdg === 0n && collateralEntries === 0;
+}
+
+export function liquidationRepayCap(
+  debtUsdg: bigint,
+  closeFactorBps: number,
+  selectedCollateralValueUsdMicro: bigint,
+  liquidationBonusBps: number,
+): bigint {
+  if (debtUsdg <= 0n) return 0n;
+  if (closeFactorBps <= 0 || closeFactorBps > BPS_DENOMINATOR) {
+    throw new Error("invalid close factor");
+  }
+  const closeCap = (debtUsdg * BigInt(closeFactorBps)) / BigInt(BPS_DENOMINATOR);
+  const collateralCap =
+    (selectedCollateralValueUsdMicro * BigInt(BPS_DENOMINATOR)) /
+    BigInt(BPS_DENOMINATOR + liquidationBonusBps);
+  const nonZeroCloseCap = closeCap === 0n ? 1n : closeCap;
+  return [debtUsdg, nonZeroCloseCap, collateralCap].reduce((a, b) => (a < b ? a : b));
+}
+
+export function isLiquidatable(healthFactorBps: bigint | null): boolean {
+  return healthFactorBps !== null && healthFactorBps <= BigInt(BPS_DENOMINATOR);
 }
 
 export function healthLabel(healthFactorBps: bigint | null): "NO DEBT" | "SAFE" | "CAUTION" | "DANGER" | "LIQUIDATABLE" {

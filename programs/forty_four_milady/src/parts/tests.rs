@@ -10,6 +10,8 @@ mod tests {
             total_supplied_usdg: 10_000_000_000,
             total_borrowed_usdg: 8_000_000_000,
             protocol_reserves_usdg: 0,
+            insurance_reserve_usdg: 0,
+            bad_debt_usdg: 0,
             borrow_interest_remainder: 0,
             borrow_cap_usdg: 0,
             borrow_index_e18: INDEX_SCALE_E18,
@@ -22,7 +24,9 @@ mod tests {
             kink_utilization_bps: 8_000,
             last_borrow_apr_bps: 1_000,
             last_supply_apr_bps: 720,
+            liquidation_close_factor_bps: DEFAULT_LIQUIDATION_CLOSE_FACTOR_BPS,
             borrow_enabled: true,
+            liquidation_enabled: true,
             bump: 255,
         }
     }
@@ -178,6 +182,55 @@ mod tests {
         assert_eq!(remaining, 0);
         assert_eq!(health, u64::MAX);
         assert_eq!(pool.total_borrowed_usdg, 0);
+    }
+
+    #[test]
+    fn inverse_oracle_conversion_round_trips_down() {
+        let usd = 1_902_500_000u64;
+        let raw = usd_micro_to_token_amount(usd, 6, 19_025_000_000, -8).unwrap();
+        assert_eq!(raw, 10_000_000);
+        assert_eq!(
+            token_value_usd_micro(raw, 6, 19_025_000_000, -8).unwrap(),
+            usd
+        );
+    }
+
+    #[test]
+    fn insurance_and_bad_debt_preserve_physical_liquidity_accounting() {
+        let mut pool = test_pool();
+        pool.total_supplied_usdg = 10_720_000_000;
+        pool.total_borrowed_usdg = 8_800_000_000;
+        pool.protocol_reserves_usdg = 0;
+        pool.insurance_reserve_usdg = 80_000_000;
+        pool.bad_debt_usdg = 0;
+        assert_eq!(pool_available_liquidity(&pool).unwrap(), 2_000_000_000);
+
+        // Write off $50 debt. $80 insurance exists, so it can absorb the loss
+        // without changing physical cash.
+        pool.total_borrowed_usdg -= 50_000_000;
+        pool.insurance_reserve_usdg -= 50_000_000;
+        assert_eq!(pool_available_liquidity(&pool).unwrap(), 2_000_000_000);
+
+        // Uncovered loss is represented as bad debt and still leaves the cash
+        // invariant unchanged.
+        pool.total_borrowed_usdg -= 20_000_000;
+        pool.bad_debt_usdg += 20_000_000;
+        assert_eq!(pool_available_liquidity(&pool).unwrap(), 2_000_000_000);
+
+        // Recapitalizing the deficit with real USDG raises available cash.
+        pool.bad_debt_usdg -= 20_000_000;
+        assert_eq!(pool_available_liquidity(&pool).unwrap(), 2_020_000_000);
+    }
+
+    #[test]
+    fn close_factor_caps_a_single_liquidation() {
+        let debt = 4_000_000_000u64;
+        let close_limit = u64::try_from(
+            u128::from(debt) * u128::from(DEFAULT_LIQUIDATION_CLOSE_FACTOR_BPS)
+                / u128::from(BPS_DENOMINATOR),
+        )
+        .unwrap();
+        assert_eq!(close_limit, 2_000_000_000);
     }
 
 }

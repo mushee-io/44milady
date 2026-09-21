@@ -21,6 +21,8 @@
         pool.total_supplied_usdg = 0;
         pool.total_borrowed_usdg = 0;
         pool.protocol_reserves_usdg = 0;
+        pool.insurance_reserve_usdg = 0;
+        pool.bad_debt_usdg = 0;
         pool.borrow_interest_remainder = 0;
         pool.borrow_cap_usdg = args.borrow_cap_usdg;
         pool.borrow_index_e18 = INDEX_SCALE_E18;
@@ -33,7 +35,9 @@
         pool.kink_utilization_bps = args.kink_utilization_bps;
         pool.last_borrow_apr_bps = args.base_rate_bps;
         pool.last_supply_apr_bps = 0;
+        pool.liquidation_close_factor_bps = DEFAULT_LIQUIDATION_CLOSE_FACTOR_BPS;
         pool.borrow_enabled = false;
+        pool.liquidation_enabled = true;
         pool.bump = ctx.bumps.lending_pool;
 
         emit!(LendingPoolInitialized {

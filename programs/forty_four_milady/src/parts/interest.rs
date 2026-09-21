@@ -33,9 +33,15 @@ fn validate_interest_model(
 }
 
 fn pool_total_assets_usdg(pool: &LendingPool) -> Result<u64> {
-    pool.total_supplied_usdg
+    let gross_claims = pool
+        .total_supplied_usdg
         .checked_add(pool.protocol_reserves_usdg)
-        .ok_or_else(|| error!(MiladyError::MathOverflow))
+        .and_then(|v| v.checked_add(pool.insurance_reserve_usdg))
+        .ok_or(MiladyError::MathOverflow)?;
+
+    gross_claims
+        .checked_sub(pool.bad_debt_usdg)
+        .ok_or_else(|| error!(MiladyError::PoolInsolvent))
 }
 
 fn pool_available_liquidity(pool: &LendingPool) -> Result<u64> {

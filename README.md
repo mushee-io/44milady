@@ -80,7 +80,22 @@
 - zero-balance supplier-position closure
 - overpayment and insufficient-funds protection
 
-See `docs/M2-M5.md`, `docs/M6.md`, `docs/M7.md`, and `docs/M8.md`.
+### ✅ Source implementation: Milestone 9 — liquidation + solvency
+- fresh-Pyth whole-account liquidation checks
+- configurable liquidation close factor
+- independent liquidation kill switch
+- market-specific liquidation bonus
+- partial collateral seizure
+- liquidator USDG repayment into the pool
+- keeper service with dry-run default
+- worst-health-first keeper prioritization
+- protocol reserve loss waterfall
+- dedicated USDG insurance reserve
+- uncovered bad-debt accounting
+- bad-debt recapitalization with real USDG
+- liquidation remains available during general pause unless explicitly disabled
+
+See `docs/M2-M5.md`, `docs/M6.md`, `docs/M7.md`, `docs/M8.md`, and `docs/M9.md`.
 
 ## M6 borrow path
 
@@ -106,7 +121,7 @@ Pyth valuation → risk engine → borrow capacity
 - USDG is required to use 6 decimals so debt units match the protocol's USD micro-unit risk accounting.
 - Pool borrowing starts disabled after initialization and must be explicitly enabled by protocol authority.
 - The current `declare_id!` / `Anchor.toml` program address is a placeholder and must be replaced by the generated program keypair before deployment.
-- M8 allows partial, MAX and on-behalf repayment; repayment returns physical USDG to the vault and makes supplier/reserve claims liquid as debt is settled.
+- M9 enforces unhealthy debt with fresh-Pyth liquidations, then absorbs collateral-exhausted losses through protocol reserves, dedicated insurance, and explicit bad-debt accounting.
 
 ## Local model checks
 
@@ -134,7 +149,22 @@ Supply USDG → Deposit collateral → Borrow → Accrue interest
 
 Third parties can also repay another borrower's debt without receiving their collateral.
 
+## Liquidation + loss waterfall
+
+```
+health <= 1.0
+→ liquidator repays USDG
+→ receives collateral + market bonus
+→ repeat if needed
+→ no collateral + residual debt
+→ protocol reserves
+→ insurance reserve
+→ bad debt
+→ USDG recapitalization
+```
+
+The keeper under `keeper/` is dry-run by default; the Solana program remains the final authority for fresh price, health, close-factor and collateral checks.
+
 ## Next
 
-9. liquidations + keeper
 10. hardening + public Devnet release

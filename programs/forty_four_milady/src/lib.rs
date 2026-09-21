@@ -23,6 +23,7 @@ pub const MAX_ORACLE_AGE_SECS: u32 = 3_600;
 pub const MAX_RESERVE_FACTOR_BPS: u16 = 5_000;
 pub const MAX_BORROW_APR_BPS: u32 = 100_000;
 pub const SECONDS_PER_YEAR: u64 = 31_536_000;
+pub const DEFAULT_LIQUIDATION_CLOSE_FACTOR_BPS: u16 = 5_000;
 
 mod handlers_admin {
     use super::*;
@@ -35,6 +36,10 @@ mod handlers_collateral {
 mod handlers_lending {
     use super::*;
     include!("parts/handlers_lending.rs");
+}
+mod handlers_liquidation {
+    use super::*;
+    include!("parts/handlers_liquidation.rs");
 }
 
 #[program]
@@ -131,11 +136,39 @@ pub mod forty_four_milady {
     pub fn close_collateral_vault(ctx: Context<CloseCollateralVault>) -> Result<()> {
         handlers_collateral::close_collateral_vault(ctx)
     }
+
+    // Milestone 9 — liquidation, insurance reserve and bad-debt handling.
+    pub fn update_liquidation_config(
+        ctx: Context<UpdateLiquidationConfig>,
+        close_factor_bps: u16,
+        enabled: bool,
+    ) -> Result<()> {
+        handlers_liquidation::update_liquidation_config(ctx, close_factor_bps, enabled)
+    }
+    pub fn liquidate(ctx: Context<Liquidate>, max_repay_usdg: u64) -> Result<()> {
+        handlers_liquidation::liquidate(ctx, max_repay_usdg)
+    }
+    pub fn fund_insurance_reserve(
+        ctx: Context<FundInsuranceReserve>,
+        amount: u64,
+    ) -> Result<()> {
+        handlers_liquidation::fund_insurance_reserve(ctx, amount)
+    }
+    pub fn absorb_bad_debt(ctx: Context<AbsorbBadDebt>) -> Result<()> {
+        handlers_liquidation::absorb_bad_debt(ctx)
+    }
+    pub fn recapitalize_bad_debt(
+        ctx: Context<RecapitalizeBadDebt>,
+        amount: u64,
+    ) -> Result<()> {
+        handlers_liquidation::recapitalize_bad_debt(ctx, amount)
+    }
 }
 
 include!("parts/accounts_admin.rs");
 include!("parts/accounts_collateral.rs");
 include!("parts/accounts_lending.rs");
+include!("parts/accounts_liquidation.rs");
 include!("parts/state.rs");
 include!("parts/interest.rs");
 include!("parts/risk.rs");

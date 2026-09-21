@@ -203,3 +203,52 @@ pub struct CollateralVaultClosed {
     pub market: Pubkey,
     pub mint: Pubkey,
 }
+
+#[event]
+pub struct LiquidationConfigUpdated {
+    pub lending_pool: Pubkey,
+    pub close_factor_bps: u16,
+    pub enabled: bool,
+}
+
+#[event]
+pub struct PositionLiquidated {
+    pub liquidator: Pubkey,
+    pub borrower: Pubkey,
+    pub lending_pool: Pubkey,
+    pub market: Pubkey,
+    pub repay_usdg: u64,
+    pub collateral_seized: u64,
+    pub liquidation_bonus_bps: u16,
+    pub debt_remaining_usdg: u64,
+    pub health_before_bps: u64,
+    pub health_after_bps: u64,
+    pub available_liquidity_usdg: u64,
+}
+
+#[event]
+pub struct InsuranceReserveFunded {
+    pub funder: Pubkey,
+    pub lending_pool: Pubkey,
+    pub amount: u64,
+    pub insurance_reserve_usdg: u64,
+}
+
+#[event]
+pub struct BadDebtAbsorbed {
+    pub borrower: Pubkey,
+    pub lending_pool: Pubkey,
+    pub written_off_usdg: u64,
+    pub protocol_reserve_cover_usdg: u64,
+    pub insurance_cover_usdg: u64,
+    pub uncovered_bad_debt_usdg: u64,
+    pub total_bad_debt_usdg: u64,
+}
+
+#[event]
+pub struct BadDebtRecapitalized {
+    pub funder: Pubkey,
+    pub lending_pool: Pubkey,
+    pub amount: u64,
+    pub remaining_bad_debt_usdg: u64,
+}

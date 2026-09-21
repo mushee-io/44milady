@@ -85,6 +85,10 @@ pub struct LendingPool {
     pub total_borrowed_usdg: u64,
     /// Reserve claim created from the protocol's share of borrower interest.
     pub protocol_reserves_usdg: u64,
+    /// Dedicated first-loss cash funded into the pool vault.
+    pub insurance_reserve_usdg: u64,
+    /// Uncovered written-off debt after reserves/insurance are exhausted.
+    pub bad_debt_usdg: u64,
     /// Carries sub-micro-unit borrower interest across frequent accrual calls.
     pub borrow_interest_remainder: u128,
     /// Zero means uncapped on Devnet.
@@ -101,7 +105,9 @@ pub struct LendingPool {
     pub kink_utilization_bps: u16,
     pub last_borrow_apr_bps: u32,
     pub last_supply_apr_bps: u32,
+    pub liquidation_close_factor_bps: u16,
     pub borrow_enabled: bool,
+    pub liquidation_enabled: bool,
     pub bump: u8,
 }
 

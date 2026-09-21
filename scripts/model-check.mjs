@@ -22,18 +22,32 @@ function health(liquidationCapacity, debt) {
   return debt === 0n ? null : (liquidationCapacity * BPS) / debt;
 }
 
-function assets(supplied, reserves) {
-  return supplied + reserves;
+function assets(supplied, reserves = 0n, insurance = 0n, badDebt = 0n) {
+  const gross = supplied + reserves + insurance;
+  assert(badDebt <= gross, "pool insolvent");
+  return gross - badDebt;
 }
 
-function availableLiquidity(supplied, borrowed, reserves = 0n) {
-  const totalAssets = assets(supplied, reserves);
+function availableLiquidity(
+  supplied,
+  borrowed,
+  reserves = 0n,
+  insurance = 0n,
+  badDebt = 0n,
+) {
+  const totalAssets = assets(supplied, reserves, insurance, badDebt);
   assert(borrowed <= totalAssets, "pool accounting invariant");
   return totalAssets - borrowed;
 }
 
-function utilizationBps(supplied, borrowed, reserves = 0n) {
-  const totalAssets = assets(supplied, reserves);
+function utilizationBps(
+  supplied,
+  borrowed,
+  reserves = 0n,
+  insurance = 0n,
+  badDebt = 0n,
+) {
+  const totalAssets = assets(supplied, reserves, insurance, badDebt);
   if (totalAssets === 0n) return 0n;
   const util = (borrowed * BPS) / totalAssets;
   return util > BPS ? BPS : util;
@@ -85,6 +99,31 @@ function repay(pool, debt, requested = null) {
     pool: { ...pool, borrowed: pool.borrowed - amount },
     debt: debt - amount,
     amount,
+  };
+}
+
+function liquidationCap(debt, closeFactorBps, collateralUsd, bonusBps) {
+  const closeCap = (debt * BigInt(closeFactorBps)) / BPS || 1n;
+  const collateralCap =
+    (collateralUsd * BPS) / (BPS + BigInt(bonusBps));
+  return [debt, closeCap, collateralCap].reduce((a, b) => (a < b ? a : b));
+}
+
+function absorbBadDebt(pool, debt) {
+  assert(debt > 0n && debt <= pool.borrowed);
+  const reserveCover = debt < pool.reserves ? debt : pool.reserves;
+  const afterReserve = debt - reserveCover;
+  const insuranceCover = afterReserve < pool.insurance ? afterReserve : pool.insurance;
+  const uncovered = afterReserve - insuranceCover;
+  return {
+    ...pool,
+    borrowed: pool.borrowed - debt,
+    reserves: pool.reserves - reserveCover,
+    insurance: pool.insurance - insuranceCover,
+    badDebt: pool.badDebt + uncovered,
+    reserveCover,
+    insuranceCover,
+    uncovered,
   };
 }
 
@@ -167,7 +206,64 @@ assert.equal(
   5_000_000_000n,
 );
 
-console.log("44 Milady M2-M8 model checks: PASS");
+// M9 liquidation: 50% close factor and 5% bonus.
+const unhealthyDebt = 3_000_000_000n;
+const unhealthyCapacity = 2_700_000_000n;
+assert.equal(health(unhealthyCapacity, unhealthyDebt), 9_000n);
+const liqCap = liquidationCap(
+  unhealthyDebt,
+  5_000,
+  2_000_000_000n,
+  500,
+);
+assert.equal(liqCap, 1_500_000_000n);
+
+// Bad debt uses protocol reserves first, then insurance, then records only
+// the uncovered deficit.
+const insolventPool = {
+  supplied: 10_000_000_000n,
+  borrowed: 3_000_000_000n,
+  reserves: 100_000_000n,
+  insurance: 200_000_000n,
+  badDebt: 0n,
+};
+const beforeWriteoff = availableLiquidity(
+  insolventPool.supplied,
+  insolventPool.borrowed,
+  insolventPool.reserves,
+  insolventPool.insurance,
+  insolventPool.badDebt,
+);
+const absorbed = absorbBadDebt(insolventPool, 500_000_000n);
+assert.equal(absorbed.reserveCover, 100_000_000n);
+assert.equal(absorbed.insuranceCover, 200_000_000n);
+assert.equal(absorbed.uncovered, 200_000_000n);
+assert.equal(absorbed.badDebt, 200_000_000n);
+assert.equal(
+  availableLiquidity(
+    absorbed.supplied,
+    absorbed.borrowed,
+    absorbed.reserves,
+    absorbed.insurance,
+    absorbed.badDebt,
+  ),
+  beforeWriteoff,
+);
+
+// Real USDG recapitalization removes the deficit and increases physical liquidity.
+absorbed.badDebt -= 200_000_000n;
+assert.equal(
+  availableLiquidity(
+    absorbed.supplied,
+    absorbed.borrowed,
+    absorbed.reserves,
+    absorbed.insurance,
+    absorbed.badDebt,
+  ),
+  beforeWriteoff + 200_000_000n,
+);
+
+console.log("44 Milady M2-M9 model checks: PASS");
 console.log({
   collateralUsd: Number(total) / 1e6,
   maxBorrowUsd: Number(borrowLimit) / 1e6,
@@ -179,4 +275,6 @@ console.log({
   partialRepayUsd: Number(partial.amount) / 1e6,
   remainingDebtUsd: Number(partial.debt) / 1e6,
   maxRepayUsd: Number(maxRepay.amount) / 1e6,
+  liquidationCapUsd: Number(liqCap) / 1e6,
+  uncoveredBadDebtUsd: Number(absorbed.uncovered) / 1e6,
 });
