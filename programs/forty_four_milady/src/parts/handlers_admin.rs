@@ -1,9 +1,11 @@
     pub fn initialize_protocol(ctx: Context<InitializeProtocol>) -> Result<()> {
         let config = &mut ctx.accounts.protocol_config;
         config.authority = ctx.accounts.authority.key();
+        config.pending_authority = Pubkey::default();
         config.treasury = ctx.accounts.treasury.key();
         config.emergency_authority = ctx.accounts.emergency_authority.key();
-        config.version = 6;
+        config.pending_emergency_authority = Pubkey::default();
+        config.version = 7;
         config.paused = false;
         config.bump = ctx.bumps.protocol_config;
 
@@ -180,5 +182,97 @@
             total_claimed: claim.total_claimed,
         });
 
+        Ok(())
+    }
+
+
+    // ----- Milestone 10: hardened admin rotation -----
+
+    pub fn propose_authority(ctx: Context<ProposeAuthority>, new_authority: Pubkey) -> Result<()> {
+        assert_protocol_authority(&ctx.accounts.protocol_config, &ctx.accounts.authority)?;
+        require!(new_authority != Pubkey::default(), MiladyError::InvalidAdminAddress);
+        require!(new_authority != ctx.accounts.protocol_config.authority, MiladyError::InvalidAdminAddress);
+        ctx.accounts.protocol_config.pending_authority = new_authority;
+        emit!(AuthorityTransferProposed {
+            current_authority: ctx.accounts.protocol_config.authority,
+            pending_authority: new_authority,
+        });
+        Ok(())
+    }
+
+    pub fn accept_authority(ctx: Context<AcceptAuthority>) -> Result<()> {
+        let pending = ctx.accounts.protocol_config.pending_authority;
+        require!(pending != Pubkey::default(), MiladyError::NoPendingAuthorityTransfer);
+        require_keys_eq!(ctx.accounts.pending_authority.key(), pending, MiladyError::Unauthorized);
+
+        let old = ctx.accounts.protocol_config.authority;
+        ctx.accounts.protocol_config.authority = pending;
+        ctx.accounts.protocol_config.pending_authority = Pubkey::default();
+
+        emit!(AuthorityTransferred {
+            old_authority: old,
+            new_authority: pending,
+        });
+        Ok(())
+    }
+
+    pub fn cancel_authority_transfer(ctx: Context<ProposeAuthority>) -> Result<()> {
+        assert_protocol_authority(&ctx.accounts.protocol_config, &ctx.accounts.authority)?;
+        ctx.accounts.protocol_config.pending_authority = Pubkey::default();
+        emit!(AuthorityTransferCancelled {
+            authority: ctx.accounts.authority.key(),
+        });
+        Ok(())
+    }
+
+    pub fn propose_emergency_authority(
+        ctx: Context<ProposeEmergencyAuthority>,
+        new_emergency_authority: Pubkey,
+    ) -> Result<()> {
+        assert_protocol_authority(&ctx.accounts.protocol_config, &ctx.accounts.authority)?;
+        require!(
+            new_emergency_authority != Pubkey::default(),
+            MiladyError::InvalidAdminAddress
+        );
+        ctx.accounts.protocol_config.pending_emergency_authority = new_emergency_authority;
+        emit!(EmergencyAuthorityTransferProposed {
+            current_emergency_authority: ctx.accounts.protocol_config.emergency_authority,
+            pending_emergency_authority: new_emergency_authority,
+        });
+        Ok(())
+    }
+
+    pub fn accept_emergency_authority(ctx: Context<AcceptEmergencyAuthority>) -> Result<()> {
+        let pending = ctx.accounts.protocol_config.pending_emergency_authority;
+        require!(
+            pending != Pubkey::default(),
+            MiladyError::NoPendingEmergencyAuthorityTransfer
+        );
+        require_keys_eq!(
+            ctx.accounts.pending_emergency_authority.key(),
+            pending,
+            MiladyError::Unauthorized
+        );
+
+        let old = ctx.accounts.protocol_config.emergency_authority;
+        ctx.accounts.protocol_config.emergency_authority = pending;
+        ctx.accounts.protocol_config.pending_emergency_authority = Pubkey::default();
+
+        emit!(EmergencyAuthorityTransferred {
+            old_emergency_authority: old,
+            new_emergency_authority: pending,
+        });
+        Ok(())
+    }
+
+    pub fn set_treasury(ctx: Context<SetTreasury>, treasury: Pubkey) -> Result<()> {
+        assert_protocol_authority(&ctx.accounts.protocol_config, &ctx.accounts.authority)?;
+        require!(treasury != Pubkey::default(), MiladyError::InvalidAdminAddress);
+        let old = ctx.accounts.protocol_config.treasury;
+        ctx.accounts.protocol_config.treasury = treasury;
+        emit!(TreasuryUpdated {
+            old_treasury: old,
+            new_treasury: treasury,
+        });
         Ok(())
     }
