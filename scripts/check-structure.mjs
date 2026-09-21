@@ -15,6 +15,7 @@ const required = [
   "docs/M2-M5.md",
   "docs/M6.md",
   "docs/M7.md",
+  "docs/M8.md",
   "programs/forty_four_milady/src/parts/interest.rs",
 ];
 for (const path of required) {
@@ -51,6 +52,14 @@ for (const symbol of [
   "borrow_apr_bps",
   "supply_apr_bps",
   "protocol_reserves_usdg",
+  "repay_usdg",
+  "repay_usdg_max",
+  "repay_usdg_on_behalf",
+  "repay_usdg_on_behalf_max",
+  "close_credit_account",
+  "close_supplier_position",
+  "close_collateral_vault",
+  "UsdgRepaid",
 ]) {
   if (!source.includes(symbol)) throw new Error(`Program missing ${symbol}`);
 }
