@@ -62,7 +62,7 @@ pub struct CreditAccount {
     pub owner: Pubkey,
     /// USDG has 6 decimals, so raw debt units equal USD micro-units.
     pub debt_usdg: u64,
-    /// Reserved now so Milestone 7 can add indexed interest without a schema break.
+    /// Snapshot of the global borrow index used for lazy interest synchronization.
     pub borrow_index_snapshot_e18: u128,
     pub last_borrow_ts: i64,
     #[max_len(8)]
@@ -110,7 +110,7 @@ pub struct LendingPool {
 pub struct SupplierPosition {
     pub owner: Pubkey,
     pub lending_pool: Pubkey,
-    /// Principal-only balance until Milestone 7 activates supply interest.
+    /// Indexed supplier claim; synchronized lazily against the global supply index.
     pub principal_usdg: u64,
     pub supply_index_snapshot_e18: u128,
     pub created_at: i64,
