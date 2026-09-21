@@ -170,6 +170,29 @@ export function aprBpsToApyPercent(aprBps: number, compoundsPerYear = 365): numb
   return (Math.pow(1 + apr / compoundsPerYear, compoundsPerYear) - 1) * 100;
 }
 
+export function resolveRepaymentAmount(
+  debtUsdg: bigint,
+  requestedUsdg?: bigint,
+): bigint {
+  if (debtUsdg <= 0n) throw new Error("no debt to repay");
+  if (requestedUsdg === undefined) return debtUsdg;
+  if (requestedUsdg <= 0n || requestedUsdg > debtUsdg) {
+    throw new Error("invalid repayment amount");
+  }
+  return requestedUsdg;
+}
+
+export function debtAfterRepayment(debtUsdg: bigint, repaymentUsdg: bigint): bigint {
+  if (repaymentUsdg < 0n || repaymentUsdg > debtUsdg) {
+    throw new Error("repayment exceeds debt");
+  }
+  return debtUsdg - repaymentUsdg;
+}
+
+export function canCloseCreditAccount(debtUsdg: bigint, collateralEntries: number): boolean {
+  return debtUsdg === 0n && collateralEntries === 0;
+}
+
 export function healthLabel(healthFactorBps: bigint | null): "NO DEBT" | "SAFE" | "CAUTION" | "DANGER" | "LIQUIDATABLE" {
   if (healthFactorBps === null) return "NO DEBT";
   if (healthFactorBps > 15_000n) return "SAFE";
