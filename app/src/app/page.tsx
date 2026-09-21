@@ -11,6 +11,7 @@ const milestones = [
   ["04", "Pyth valuation", "Built"],
   ["05", "Risk engine", "Built"],
   ["06", "USDG liquidity + borrowing", "Built"],
+  ["07", "Interest engine + reserves", "Built"],
 ];
 
 const borrowFlow = [
@@ -40,11 +41,11 @@ export default function Home() {
         <article><span>Network</span><strong>Solana Devnet</strong></article>
         <article><span>Liquidity</span><strong>USDG pool</strong></article>
         <article><span>Valuation</span><strong>Pyth · on-chain checked</strong></article>
-        <article><span>Borrowing</span><strong>M6 source built</strong></article>
+        <article><span>Rates</span><strong>Dynamic · utilization based</strong></article>
       </section>
 
       <section className="panel">
-        <p className="eyebrow">MILESTONES 2—6</p>
+        <p className="eyebrow">MILESTONES 2—7</p>
         <h2>Credit market core</h2>
         <div className="milestone-list">
           {milestones.map(([number, label, status]) => (
@@ -66,6 +67,16 @@ export default function Home() {
               <em>{index === borrowFlow.length - 1 ? "USDG" : "→"}</em>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="eyebrow">INTEREST MODEL</p>
+        <h2>Rates move with utilization.</h2>
+        <div className="market-table">
+          <div className="market-row"><strong>Base</strong><span>2.00%</span><span>Kink 80%</span><span>Reserve 10%</span></div>
+          <div className="market-row"><strong>At kink</strong><span>Borrow 10.00%</span><span>Supply 7.20%</span><span>Indexed</span></div>
+          <div className="market-row"><strong>90% utilized</strong><span>Borrow 35.00%</span><span>Jump slope</span><span>Dynamic</span></div>
         </div>
       </section>
 
