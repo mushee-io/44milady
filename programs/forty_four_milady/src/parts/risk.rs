@@ -104,6 +104,21 @@ fn compute_portfolio_risk<'info>(
     credit_account: &CreditAccount,
     remaining_accounts: &[AccountInfo<'info>],
 ) -> Result<RiskSnapshot> {
+    compute_portfolio_risk_internal(credit_account, remaining_accounts, true)
+}
+
+fn compute_portfolio_risk_for_liquidation<'info>(
+    credit_account: &CreditAccount,
+    remaining_accounts: &[AccountInfo<'info>],
+) -> Result<RiskSnapshot> {
+    compute_portfolio_risk_internal(credit_account, remaining_accounts, false)
+}
+
+fn compute_portfolio_risk_internal<'info>(
+    credit_account: &CreditAccount,
+    remaining_accounts: &[AccountInfo<'info>],
+    require_enabled: bool,
+) -> Result<RiskSnapshot> {
     let expected = credit_account
         .collaterals
         .len()
@@ -128,7 +143,9 @@ fn compute_portfolio_risk<'info>(
             let mut slice: &[u8] = &data;
             MarketConfig::try_deserialize(&mut slice)?
         };
-        require!(market.enabled, MiladyError::MarketDisabled);
+        if require_enabled {
+            require!(market.enabled, MiladyError::MarketDisabled);
+        }
 
         let price = read_pyth_price(price_info, &clock, &market)?;
 
@@ -175,6 +192,39 @@ fn health_factor_bps_for_debt(liquidation_capacity_usd_micro: u64, debt_usdg: u6
         .ok_or(MiladyError::MathOverflow)?
         / u128::from(debt_usdg);
     Ok(u64::try_from(health).unwrap_or(u64::MAX))
+}
+
+fn usd_micro_to_token_amount(
+    usd_micro: u64,
+    decimals: u8,
+    price: i64,
+    exponent: i32,
+) -> Result<u64> {
+    require!(price > 0, MiladyError::InvalidOraclePrice);
+    let price_u128 = u128::try_from(price).map_err(|_| error!(MiladyError::InvalidOraclePrice))?;
+    let token_scale = pow10(u32::from(decimals))?;
+
+    let micro_price = if exponent >= 0 {
+        price_u128
+            .checked_mul(pow10(u32::try_from(exponent).map_err(|_| error!(MiladyError::MathOverflow))?)?)
+            .and_then(|v| v.checked_mul(u128::from(USD_MICRO)))
+            .ok_or(MiladyError::MathOverflow)?
+    } else {
+        let abs_exp = exponent.checked_abs().ok_or(MiladyError::MathOverflow)?;
+        let scale = pow10(u32::try_from(abs_exp).map_err(|_| error!(MiladyError::MathOverflow))?)?;
+        price_u128
+            .checked_mul(u128::from(USD_MICRO))
+            .ok_or(MiladyError::MathOverflow)?
+            / scale
+    };
+
+    require!(micro_price > 0, MiladyError::InvalidOraclePrice);
+    let raw = u128::from(usd_micro)
+        .checked_mul(token_scale)
+        .ok_or(MiladyError::MathOverflow)?
+        / micro_price;
+
+    u64::try_from(raw).map_err(|_| error!(MiladyError::MathOverflow))
 }
 
 fn token_value_usd_micro(amount: u64, decimals: u8, price: i64, exponent: i32) -> Result<u64> {
