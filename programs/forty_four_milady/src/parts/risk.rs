@@ -10,6 +10,96 @@ pub struct RiskSnapshot {
 // Risk/oracle helpers
 // -----------------------------------------------------------------------------
 
+// Pyth Receiver program. Mainnet and Devnet currently use the same program id.
+// We parse PriceUpdateV2 locally to avoid transitive Anchor/Borsh version drift
+// in the receiver SDK while preserving its wire format and verification checks.
+pub const PYTH_RECEIVER_ID: Pubkey = pubkey!("rec5EKMGg6MxZYaMdyBfgwp4d5rB9T1VQH5pJv5LtFJ");
+const PYTH_PRICE_UPDATE_V2_DISCRIMINATOR: [u8; 8] = [34, 241, 35, 99, 157, 126, 244, 205];
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug, PartialEq, Eq)]
+enum PythVerificationLevel {
+    Partial { num_signatures: u8 },
+    Full,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Copy, Debug)]
+struct PythPriceFeedMessage {
+    feed_id: [u8; 32],
+    price: i64,
+    conf: u64,
+    exponent: i32,
+    publish_time: i64,
+    prev_publish_time: i64,
+    ema_price: i64,
+    ema_conf: u64,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+struct PythPriceUpdateV2 {
+    write_authority: Pubkey,
+    verification_level: PythVerificationLevel,
+    price_message: PythPriceFeedMessage,
+    posted_slot: u64,
+}
+
+#[derive(Clone, Copy, Debug)]
+struct OraclePrice {
+    price: i64,
+    conf: u64,
+    exponent: i32,
+}
+
+fn read_pyth_price(
+    price_info: &AccountInfo,
+    clock: &Clock,
+    market: &MarketConfig,
+) -> Result<OraclePrice> {
+    require_keys_eq!(*price_info.owner, PYTH_RECEIVER_ID, MiladyError::InvalidOracleOwner);
+
+    let data = price_info.try_borrow_data()?;
+    require!(data.len() >= 8, MiladyError::OracleReadFailed);
+    require!(
+        &data[..8] == PYTH_PRICE_UPDATE_V2_DISCRIMINATOR.as_ref(),
+        MiladyError::OracleReadFailed
+    );
+
+    let mut payload: &[u8] = &data[8..];
+    let update = PythPriceUpdateV2::deserialize(&mut payload)
+        .map_err(|_| error!(MiladyError::OracleReadFailed))?;
+
+    require!(
+        matches!(update.verification_level, PythVerificationLevel::Full),
+        MiladyError::OracleReadFailed
+    );
+    require!(
+        update.price_message.feed_id == market.feed_id,
+        MiladyError::OracleReadFailed
+    );
+
+    let max_age = i64::from(market.max_price_age_secs);
+    require!(
+        update
+            .price_message
+            .publish_time
+            .saturating_add(max_age)
+            >= clock.unix_timestamp,
+        MiladyError::OracleReadFailed
+    );
+
+    require!(update.price_message.price > 0, MiladyError::InvalidOraclePrice);
+    validate_oracle_confidence(
+        update.price_message.price,
+        update.price_message.conf,
+        market.max_confidence_bps,
+    )?;
+
+    Ok(OraclePrice {
+        price: update.price_message.price,
+        conf: update.price_message.conf,
+        exponent: update.price_message.exponent,
+    })
+}
+
 fn compute_portfolio_risk<'info>(
     credit_account: &CreditAccount,
     remaining_accounts: &[AccountInfo<'info>],
@@ -40,28 +130,7 @@ fn compute_portfolio_risk<'info>(
         };
         require!(market.enabled, MiladyError::MarketDisabled);
 
-        require_keys_eq!(
-            *price_info.owner,
-            pyth_solana_receiver_sdk::ID,
-            MiladyError::InvalidOracleOwner
-        );
-        let price_update = {
-            let data = price_info.try_borrow_data()?;
-            let mut slice: &[u8] = &data;
-            PriceUpdateV2::try_deserialize(&mut slice)
-                .map_err(|_| error!(MiladyError::OracleReadFailed))?
-        };
-
-        let price = price_update
-            .get_price_no_older_than(
-                &clock,
-                u64::from(market.max_price_age_secs),
-                &market.feed_id,
-            )
-            .map_err(|_| error!(MiladyError::OracleReadFailed))?;
-
-        require!(price.price > 0, MiladyError::InvalidOraclePrice);
-        validate_oracle_confidence(price.price, price.conf, market.max_confidence_bps)?;
+        let price = read_pyth_price(price_info, &clock, &market)?;
 
         let value = token_value_usd_micro(
             collateral.amount,
