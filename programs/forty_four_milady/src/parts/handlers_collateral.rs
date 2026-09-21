@@ -166,3 +166,47 @@
 
         Ok(())
     }
+
+
+    pub fn close_collateral_vault(ctx: Context<CloseCollateralVault>) -> Result<()> {
+        let market_key = ctx.accounts.market_config.key();
+        require!(
+            !ctx.accounts
+                .credit_account
+                .collaterals
+                .iter()
+                .any(|entry| entry.market == market_key),
+            MiladyError::CollateralStillRecorded
+        );
+        require!(
+            ctx.accounts.collateral_vault.amount == 0,
+            MiladyError::CollateralVaultNotEmpty
+        );
+
+        let owner_key = ctx.accounts.owner.key();
+        let bump_seed = [ctx.accounts.credit_account.bump];
+        let signer_seeds: &[&[u8]] = &[CREDIT_SEED, owner_key.as_ref(), &bump_seed];
+        let signer = &[signer_seeds];
+
+        let cpi_accounts = CloseAccount {
+            account: ctx.accounts.collateral_vault.to_account_info(),
+            destination: ctx.accounts.owner.to_account_info(),
+            authority: ctx.accounts.credit_account.to_account_info(),
+        };
+        token_interface::close_account(
+            CpiContext::new_with_signer(
+                ctx.accounts.token_program.to_account_info(),
+                cpi_accounts,
+                signer,
+            ),
+        )?;
+
+        emit!(CollateralVaultClosed {
+            owner: owner_key,
+            credit_account: ctx.accounts.credit_account.key(),
+            market: market_key,
+            mint: ctx.accounts.collateral_mint.key(),
+        });
+
+        Ok(())
+    }

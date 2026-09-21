@@ -12,6 +12,7 @@ const milestones = [
   ["05", "Risk engine", "Built"],
   ["06", "USDG liquidity + borrowing", "Built"],
   ["07", "Interest engine + reserves", "Built"],
+  ["08", "Repayment + position lifecycle", "Built"],
 ];
 
 const borrowFlow = [
@@ -41,11 +42,11 @@ export default function Home() {
         <article><span>Network</span><strong>Solana Devnet</strong></article>
         <article><span>Liquidity</span><strong>USDG pool</strong></article>
         <article><span>Valuation</span><strong>Pyth · on-chain checked</strong></article>
-        <article><span>Rates</span><strong>Dynamic · utilization based</strong></article>
+        <article><span>Lifecycle</span><strong>Borrow · repay · close</strong></article>
       </section>
 
       <section className="panel">
-        <p className="eyebrow">MILESTONES 2—7</p>
+        <p className="eyebrow">MILESTONES 2—8</p>
         <h2>Credit market core</h2>
         <div className="milestone-list">
           {milestones.map(([number, label, status]) => (
@@ -67,6 +68,16 @@ export default function Home() {
               <em>{index === borrowFlow.length - 1 ? "USDG" : "→"}</em>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="panel">
+        <p className="eyebrow">REPAYMENT</p>
+        <h2>Debt can come all the way home.</h2>
+        <div className="market-table">
+          <div className="market-row"><strong>Partial</strong><span>Any amount ≤ debt</span><span>Interest synced first</span><span>On-chain</span></div>
+          <div className="market-row"><strong>MAX</strong><span>Clear all debt</span><span>No stale estimate</span><span>Exact</span></div>
+          <div className="market-row"><strong>On behalf</strong><span>Third-party payer</span><span>Borrower keeps collateral</span><span>Supported</span></div>
         </div>
       </section>
 

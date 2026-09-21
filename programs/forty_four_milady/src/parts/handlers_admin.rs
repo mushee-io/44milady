@@ -3,7 +3,7 @@
         config.authority = ctx.accounts.authority.key();
         config.treasury = ctx.accounts.treasury.key();
         config.emergency_authority = ctx.accounts.emergency_authority.key();
-        config.version = 4;
+        config.version = 5;
         config.paused = false;
         config.bump = ctx.bumps.protocol_config;
 

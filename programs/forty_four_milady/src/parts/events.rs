@@ -168,3 +168,38 @@ pub struct UsdgBorrowed {
     pub health_factor_bps: u64,
     pub borrow_apr_bps: u32,
 }
+
+#[event]
+pub struct UsdgRepaid {
+    pub payer: Pubkey,
+    pub borrower: Pubkey,
+    pub lending_pool: Pubkey,
+    pub amount: u64,
+    pub accrued_interest_usdg: u64,
+    pub remaining_debt_usdg: u64,
+    pub total_borrowed_usdg: u64,
+    pub available_liquidity_usdg: u64,
+    pub health_factor_bps: u64,
+    pub on_behalf: bool,
+}
+
+#[event]
+pub struct CreditAccountClosed {
+    pub owner: Pubkey,
+    pub credit_account: Pubkey,
+}
+
+#[event]
+pub struct SupplierPositionClosed {
+    pub supplier: Pubkey,
+    pub supplier_position: Pubkey,
+    pub lending_pool: Pubkey,
+}
+
+#[event]
+pub struct CollateralVaultClosed {
+    pub owner: Pubkey,
+    pub credit_account: Pubkey,
+    pub market: Pubkey,
+    pub mint: Pubkey,
+}

@@ -414,3 +414,237 @@
 
         Ok(())
     }
+
+
+    // ----- Milestone 8: repayment + full position lifecycle -----
+
+    pub fn repay_usdg(ctx: Context<RepayUsdg>, amount: u64) -> Result<()> {
+        repay_owned(ctx, Some(amount))
+    }
+
+    pub fn repay_usdg_max(ctx: Context<RepayUsdg>) -> Result<()> {
+        repay_owned(ctx, None)
+    }
+
+    pub fn repay_usdg_on_behalf(
+        ctx: Context<RepayUsdgOnBehalf>,
+        amount: u64,
+    ) -> Result<()> {
+        repay_on_behalf(ctx, Some(amount))
+    }
+
+    pub fn repay_usdg_on_behalf_max(ctx: Context<RepayUsdgOnBehalf>) -> Result<()> {
+        repay_on_behalf(ctx, None)
+    }
+
+    pub fn close_credit_account(ctx: Context<CloseCreditAccount>) -> Result<()> {
+        require!(ctx.accounts.credit_account.debt_usdg == 0, MiladyError::CreditAccountHasDebt);
+        require!(
+            ctx.accounts.credit_account.collaterals.is_empty(),
+            MiladyError::CreditAccountHasCollateral
+        );
+
+        emit!(CreditAccountClosed {
+            owner: ctx.accounts.owner.key(),
+            credit_account: ctx.accounts.credit_account.key(),
+        });
+
+        Ok(())
+    }
+
+    pub fn close_supplier_position(ctx: Context<CloseSupplierPosition>) -> Result<()> {
+        let now = Clock::get()?.unix_timestamp;
+        let pool_key = ctx.accounts.lending_pool.key();
+        accrue_pool_interest(&mut ctx.accounts.lending_pool, pool_key, now)?;
+        sync_supplier_balance(
+            &mut ctx.accounts.supplier_position,
+            &ctx.accounts.lending_pool,
+            now,
+        )?;
+
+        require!(
+            ctx.accounts.supplier_position.principal_usdg == 0,
+            MiladyError::SupplierPositionNotEmpty
+        );
+
+        emit!(SupplierPositionClosed {
+            supplier: ctx.accounts.supplier.key(),
+            supplier_position: ctx.accounts.supplier_position.key(),
+            lending_pool: ctx.accounts.lending_pool.key(),
+        });
+
+        Ok(())
+    }
+
+    fn repay_owned(ctx: Context<RepayUsdg>, requested: Option<u64>) -> Result<()> {
+        require!(ctx.accounts.usdg_mint.decimals == 6, MiladyError::InvalidUsdgDecimals);
+
+        let now = Clock::get()?.unix_timestamp;
+        let pool_key = ctx.accounts.lending_pool.key();
+        accrue_pool_interest(&mut ctx.accounts.lending_pool, pool_key, now)?;
+        let accrued_interest = sync_borrower_debt(
+            &mut ctx.accounts.credit_account,
+            &ctx.accounts.lending_pool,
+            now,
+        )?;
+
+        let amount = resolve_repayment_amount(ctx.accounts.credit_account.debt_usdg, requested)?;
+        require!(
+            ctx.accounts.payer_usdg_account.amount >= amount,
+            MiladyError::InsufficientRepaymentFunds
+        );
+
+        transfer_repayment(
+            &ctx.accounts.payer,
+            &ctx.accounts.payer_usdg_account,
+            &ctx.accounts.usdg_mint,
+            &ctx.accounts.liquidity_vault,
+            &ctx.accounts.token_program,
+            amount,
+        )?;
+
+        let (remaining_debt, health_factor_bps) = apply_repayment_accounting(
+            &mut ctx.accounts.credit_account,
+            &mut ctx.accounts.lending_pool,
+            amount,
+            now,
+        )?;
+        let available_liquidity_usdg = pool_available_liquidity(&ctx.accounts.lending_pool)?;
+
+        emit!(UsdgRepaid {
+            payer: ctx.accounts.payer.key(),
+            borrower: ctx.accounts.payer.key(),
+            lending_pool: ctx.accounts.lending_pool.key(),
+            amount,
+            accrued_interest_usdg: accrued_interest,
+            remaining_debt_usdg: remaining_debt,
+            total_borrowed_usdg: ctx.accounts.lending_pool.total_borrowed_usdg,
+            available_liquidity_usdg,
+            health_factor_bps,
+            on_behalf: false,
+        });
+
+        Ok(())
+    }
+
+    fn repay_on_behalf(
+        ctx: Context<RepayUsdgOnBehalf>,
+        requested: Option<u64>,
+    ) -> Result<()> {
+        require!(ctx.accounts.usdg_mint.decimals == 6, MiladyError::InvalidUsdgDecimals);
+
+        let now = Clock::get()?.unix_timestamp;
+        let pool_key = ctx.accounts.lending_pool.key();
+        accrue_pool_interest(&mut ctx.accounts.lending_pool, pool_key, now)?;
+        let accrued_interest = sync_borrower_debt(
+            &mut ctx.accounts.credit_account,
+            &ctx.accounts.lending_pool,
+            now,
+        )?;
+
+        let amount = resolve_repayment_amount(ctx.accounts.credit_account.debt_usdg, requested)?;
+        require!(
+            ctx.accounts.payer_usdg_account.amount >= amount,
+            MiladyError::InsufficientRepaymentFunds
+        );
+
+        transfer_repayment(
+            &ctx.accounts.payer,
+            &ctx.accounts.payer_usdg_account,
+            &ctx.accounts.usdg_mint,
+            &ctx.accounts.liquidity_vault,
+            &ctx.accounts.token_program,
+            amount,
+        )?;
+
+        let (remaining_debt, health_factor_bps) = apply_repayment_accounting(
+            &mut ctx.accounts.credit_account,
+            &mut ctx.accounts.lending_pool,
+            amount,
+            now,
+        )?;
+        let available_liquidity_usdg = pool_available_liquidity(&ctx.accounts.lending_pool)?;
+
+        emit!(UsdgRepaid {
+            payer: ctx.accounts.payer.key(),
+            borrower: ctx.accounts.borrower.key(),
+            lending_pool: ctx.accounts.lending_pool.key(),
+            amount,
+            accrued_interest_usdg: accrued_interest,
+            remaining_debt_usdg: remaining_debt,
+            total_borrowed_usdg: ctx.accounts.lending_pool.total_borrowed_usdg,
+            available_liquidity_usdg,
+            health_factor_bps,
+            on_behalf: true,
+        });
+
+        Ok(())
+    }
+
+    pub(crate) fn resolve_repayment_amount(debt_usdg: u64, requested: Option<u64>) -> Result<u64> {
+        require!(debt_usdg > 0, MiladyError::NoDebtToRepay);
+
+        match requested {
+            None => Ok(debt_usdg),
+            Some(amount) => {
+                require!(amount > 0, MiladyError::InvalidAmount);
+                require!(amount <= debt_usdg, MiladyError::RepayAmountExceedsDebt);
+                Ok(amount)
+            }
+        }
+    }
+
+    fn transfer_repayment<'info>(
+        payer: &Signer<'info>,
+        payer_usdg_account: &InterfaceAccount<'info, TokenAccount>,
+        usdg_mint: &InterfaceAccount<'info, Mint>,
+        liquidity_vault: &InterfaceAccount<'info, TokenAccount>,
+        token_program: &Interface<'info, TokenInterface>,
+        amount: u64,
+    ) -> Result<()> {
+        let cpi_accounts = TransferChecked {
+            from: payer_usdg_account.to_account_info(),
+            mint: usdg_mint.to_account_info(),
+            to: liquidity_vault.to_account_info(),
+            authority: payer.to_account_info(),
+        };
+
+        token_interface::transfer_checked(
+            CpiContext::new(token_program.to_account_info(), cpi_accounts),
+            amount,
+            usdg_mint.decimals,
+        )
+    }
+
+    pub(crate) fn apply_repayment_accounting(
+        account: &mut CreditAccount,
+        pool: &mut LendingPool,
+        amount: u64,
+        now: i64,
+    ) -> Result<(u64, u64)> {
+        require!(account.debt_usdg >= amount, MiladyError::RepayAmountExceedsDebt);
+        require!(
+            pool.total_borrowed_usdg >= amount,
+            MiladyError::PoolAccountingInvariant
+        );
+
+        account.debt_usdg = account
+            .debt_usdg
+            .checked_sub(amount)
+            .ok_or(MiladyError::MathOverflow)?;
+        pool.total_borrowed_usdg = pool
+            .total_borrowed_usdg
+            .checked_sub(amount)
+            .ok_or(MiladyError::MathOverflow)?;
+
+        account.borrow_index_snapshot_e18 = pool.borrow_index_e18;
+        account.last_borrow_ts = now;
+        account.last_health_factor_bps = health_factor_bps_for_debt(
+            account.last_liquidation_capacity_usd_micro,
+            account.debt_usdg,
+        )?;
+
+        refresh_rate_cache(pool)?;
+
+        Ok((account.debt_usdg, account.last_health_factor_bps))
+    }

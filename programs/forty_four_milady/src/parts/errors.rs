@@ -88,6 +88,22 @@ pub enum MiladyError {
     InvalidLendingPool,
     #[msg("Lending pool supplied/borrowed accounting invariant is broken.")]
     PoolAccountingInvariant,
+    #[msg("This credit account has no debt to repay.")]
+    NoDebtToRepay,
+    #[msg("Repayment amount exceeds the synchronized debt balance.")]
+    RepayAmountExceedsDebt,
+    #[msg("The repayment wallet does not hold enough USDG.")]
+    InsufficientRepaymentFunds,
+    #[msg("Credit account still has outstanding debt.")]
+    CreditAccountHasDebt,
+    #[msg("Credit account still has deposited collateral.")]
+    CreditAccountHasCollateral,
+    #[msg("Supplier position still has a non-zero USDG claim.")]
+    SupplierPositionNotEmpty,
+    #[msg("Collateral vault still contains tokens.")]
+    CollateralVaultNotEmpty,
+    #[msg("Collateral market is still recorded on the credit account.")]
+    CollateralStillRecorded,
     #[msg("Arithmetic overflow or underflow.")]
     MathOverflow,
 }

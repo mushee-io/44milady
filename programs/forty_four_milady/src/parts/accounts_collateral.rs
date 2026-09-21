@@ -121,3 +121,35 @@ pub struct RefreshHealth<'info> {
     )]
     pub lending_pool: Account<'info, LendingPool>,
 }
+
+#[derive(Accounts)]
+pub struct CloseCollateralVault<'info> {
+    #[account(mut)]
+    pub owner: Signer<'info>,
+    #[account(seeds = [PROTOCOL_SEED], bump = protocol_config.bump)]
+    pub protocol_config: Account<'info, ProtocolConfig>,
+    #[account(
+        seeds = [CREDIT_SEED, owner.key().as_ref()],
+        bump = credit_account.bump,
+        constraint = credit_account.owner == owner.key() @ MiladyError::Unauthorized
+    )]
+    pub credit_account: Account<'info, CreditAccount>,
+    #[account(
+        seeds = [MARKET_SEED, collateral_mint.key().as_ref()],
+        bump = market_config.bump,
+        constraint = market_config.protocol == protocol_config.key() @ MiladyError::InvalidProtocol,
+        constraint = market_config.mint == collateral_mint.key() @ MiladyError::InvalidMint
+    )]
+    pub market_config: Account<'info, MarketConfig>,
+    pub collateral_mint: InterfaceAccount<'info, Mint>,
+    #[account(
+        mut,
+        seeds = [VAULT_SEED, credit_account.key().as_ref(), market_config.key().as_ref()],
+        bump,
+        token::mint = collateral_mint,
+        token::authority = credit_account,
+        token::token_program = token_program
+    )]
+    pub collateral_vault: InterfaceAccount<'info, TokenAccount>,
+    pub token_program: Interface<'info, TokenInterface>,
+}

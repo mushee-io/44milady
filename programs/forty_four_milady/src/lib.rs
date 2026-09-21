@@ -1,5 +1,5 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{self, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::token_interface::{self, CloseAccount, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked};
 
 declare_id!("7ahY74GVSGRf9sDXFPtX6EnynoxWz2myNijQd7MPH5vF");
 
@@ -107,6 +107,29 @@ pub mod forty_four_milady {
     }
     pub fn sync_supplier_interest(ctx: Context<SyncSupplierInterest>) -> Result<()> {
         handlers_lending::sync_supplier_interest(ctx)
+    }
+
+    // Milestone 8 — repayment and complete position lifecycle.
+    pub fn repay_usdg(ctx: Context<RepayUsdg>, amount: u64) -> Result<()> {
+        handlers_lending::repay_usdg(ctx, amount)
+    }
+    pub fn repay_usdg_max(ctx: Context<RepayUsdg>) -> Result<()> {
+        handlers_lending::repay_usdg_max(ctx)
+    }
+    pub fn repay_usdg_on_behalf(ctx: Context<RepayUsdgOnBehalf>, amount: u64) -> Result<()> {
+        handlers_lending::repay_usdg_on_behalf(ctx, amount)
+    }
+    pub fn repay_usdg_on_behalf_max(ctx: Context<RepayUsdgOnBehalf>) -> Result<()> {
+        handlers_lending::repay_usdg_on_behalf_max(ctx)
+    }
+    pub fn close_credit_account(ctx: Context<CloseCreditAccount>) -> Result<()> {
+        handlers_lending::close_credit_account(ctx)
+    }
+    pub fn close_supplier_position(ctx: Context<CloseSupplierPosition>) -> Result<()> {
+        handlers_lending::close_supplier_position(ctx)
+    }
+    pub fn close_collateral_vault(ctx: Context<CloseCollateralVault>) -> Result<()> {
+        handlers_collateral::close_collateral_vault(ctx)
     }
 }
 
