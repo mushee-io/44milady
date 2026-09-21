@@ -116,6 +116,14 @@ fn supply_apr_bps(pool: &LendingPool, borrow_rate_bps: u32) -> Result<u32> {
     u32::try_from(numerator / denominator).map_err(|_| error!(MiladyError::MathOverflow))
 }
 
+fn refresh_rate_cache(pool: &mut LendingPool) -> Result<()> {
+    let borrow_rate = borrow_apr_bps(pool)?;
+    let supply_rate = supply_apr_bps(pool, borrow_rate)?;
+    pool.last_borrow_apr_bps = borrow_rate;
+    pool.last_supply_apr_bps = supply_rate;
+    Ok(())
+}
+
 fn annual_interest_with_remainder(
     principal: u64,
     apr_bps: u32,
