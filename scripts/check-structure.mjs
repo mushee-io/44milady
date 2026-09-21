@@ -14,6 +14,8 @@ const required = [
   "scripts/model-check.mjs",
   "docs/M2-M5.md",
   "docs/M6.md",
+  "docs/M7.md",
+  "programs/forty_four_milady/src/parts/interest.rs",
 ];
 for (const path of required) {
   if (!existsSync(path)) throw new Error(`Missing required file: ${path}`);
@@ -43,6 +45,12 @@ for (const symbol of [
   "borrow_usdg",
   "LendingPool",
   "SupplierPosition",
+  "accrue_interest",
+  "sync_borrower_interest",
+  "sync_supplier_interest",
+  "borrow_apr_bps",
+  "supply_apr_bps",
+  "protocol_reserves_usdg",
 ]) {
   if (!source.includes(symbol)) throw new Error(`Program missing ${symbol}`);
 }
