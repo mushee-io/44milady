@@ -46,16 +46,26 @@
 - canonical USDG lending pool PDA
 - program-controlled liquidity vault
 - lender SupplierPosition accounts
-- USDG supply and principal withdrawal
+- USDG supply and withdrawal
 - idle-liquidity enforcement
 - global borrow cap + borrow enable switch
-- real collateral-backed USDG borrowing
+- collateral-backed USDG borrowing
 - fresh Pyth/risk recomputation at borrow time
 - post-borrow LTV + health enforcement
-- collateral-withdrawal hardening
-- M7 borrow/supply index fields reserved in state
 
-See `docs/M2-M5.md` and `docs/M6.md`.
+### ✅ Source implementation: Milestone 7 — interest engine
+- utilization-based piecewise borrow-rate curve
+- Borrow APR and derived Supply APR
+- SDK APY helper for UI display
+- 1e18 borrow and supply indexes
+- lazy borrower/supplier balance synchronization
+- automatic accrual before risk-sensitive actions
+- fractional-interest remainder carry
+- protocol reserve accrual
+- reserve-aware balance-sheet accounting
+- interest-model admin controls and safety ceilings
+
+See `docs/M2-M5.md`, `docs/M6.md`, and `docs/M7.md`.
 
 ## M6 borrow path
 
@@ -81,7 +91,7 @@ Pyth valuation → risk engine → borrow capacity
 - USDG is required to use 6 decimals so debt units match the protocol's USD micro-unit risk accounting.
 - Pool borrowing starts disabled after initialization and must be explicitly enabled by protocol authority.
 - The current `declare_id!` / `Anchor.toml` program address is a placeholder and must be replaced by the generated program keypair before deployment.
-- M6 has principal-only supply/borrow accounting. Interest starts in M7 and repayment in M8.
+- M7 accrues borrower interest and supplier yield on-chain; repayment and physical reserve realization arrive in M8.
 
 ## Local model checks
 
@@ -93,9 +103,14 @@ npm run build:web
 
 Full Anchor compilation requires Rust, Solana CLI and Anchor CLI.
 
+## Interest model
+
+Default Devnet target configuration is 2% base, 8% slope to an 80% utilization kink, then a 50% jump slope, with a 10% protocol reserve factor. The exact values are configurable by protocol authority within hard safety bounds.
+
+At 80% utilization that model yields about 10% Borrow APR and 7.2% Supply APR before UI APY compounding.
+
 ## Next
 
-7. interest indexes / utilization curve / APY / APR
 8. repayment + complete withdrawal lifecycle
 9. liquidations + keeper
 10. hardening + public Devnet release

@@ -42,9 +42,16 @@ export type RiskSnapshot = {
 export type LendingPoolSnapshot = {
   totalSuppliedUsdg: bigint;
   totalBorrowedUsdg: bigint;
+  protocolReservesUsdg: bigint;
   borrowCapUsdg: bigint;
   borrowEnabled: boolean;
   reserveFactorBps: number;
+  baseRateBps: number;
+  slope1Bps: number;
+  slope2Bps: number;
+  kinkUtilizationBps: number;
+  lastBorrowAprBps: number;
+  lastSupplyAprBps: number;
 };
 
 export function encodeSymbol(symbol: string): number[] {
@@ -112,10 +119,11 @@ export function supplierPositionPda(
 }
 
 export function availableLiquidity(pool: LendingPoolSnapshot): bigint {
-  if (pool.totalBorrowedUsdg > pool.totalSuppliedUsdg) {
+  const assets = pool.totalSuppliedUsdg + pool.protocolReservesUsdg;
+  if (pool.totalBorrowedUsdg > assets) {
     throw new Error("pool accounting invariant violated");
   }
-  return pool.totalSuppliedUsdg - pool.totalBorrowedUsdg;
+  return assets - pool.totalBorrowedUsdg;
 }
 
 export function availableBorrow(snapshot: RiskSnapshot): bigint {
@@ -125,8 +133,41 @@ export function availableBorrow(snapshot: RiskSnapshot): bigint {
 }
 
 export function utilizationBps(pool: LendingPoolSnapshot): bigint {
-  if (pool.totalSuppliedUsdg === 0n) return 0n;
-  return (pool.totalBorrowedUsdg * 10_000n) / pool.totalSuppliedUsdg;
+  const assets = pool.totalSuppliedUsdg + pool.protocolReservesUsdg;
+  if (assets === 0n) return 0n;
+  const value = (pool.totalBorrowedUsdg * 10_000n) / assets;
+  return value > 10_000n ? 10_000n : value;
+}
+
+export function borrowAprBps(pool: LendingPoolSnapshot): number {
+  const utilization = Number(utilizationBps(pool));
+  const kink = pool.kinkUtilizationBps;
+  if (kink <= 0 || kink >= BPS_DENOMINATOR) throw new Error("invalid utilization kink");
+
+  if (utilization <= kink) {
+    return pool.baseRateBps + Math.floor((pool.slope1Bps * utilization) / kink);
+  }
+
+  return (
+    pool.baseRateBps +
+    pool.slope1Bps +
+    Math.floor((pool.slope2Bps * (utilization - kink)) / (BPS_DENOMINATOR - kink))
+  );
+}
+
+export function supplyAprBps(pool: LendingPoolSnapshot): number {
+  if (pool.totalSuppliedUsdg === 0n || pool.totalBorrowedUsdg === 0n) return 0;
+  const borrowRate = BigInt(borrowAprBps(pool));
+  const supplierShare = BigInt(BPS_DENOMINATOR - pool.reserveFactorBps);
+  return Number(
+    (borrowRate * pool.totalBorrowedUsdg * supplierShare) /
+      (pool.totalSuppliedUsdg * BigInt(BPS_DENOMINATOR)),
+  );
+}
+
+export function aprBpsToApyPercent(aprBps: number, compoundsPerYear = 365): number {
+  const apr = aprBps / 10_000;
+  return (Math.pow(1 + apr / compoundsPerYear, compoundsPerYear) - 1) * 100;
 }
 
 export function healthLabel(healthFactorBps: bigint | null): "NO DEBT" | "SAFE" | "CAUTION" | "DANGER" | "LIQUIDATABLE" {

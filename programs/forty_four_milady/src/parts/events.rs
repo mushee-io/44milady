@@ -82,6 +82,10 @@ pub struct LendingPoolInitialized {
     pub liquidity_vault: Pubkey,
     pub borrow_cap_usdg: u64,
     pub reserve_factor_bps: u16,
+    pub base_rate_bps: u32,
+    pub slope1_bps: u32,
+    pub slope2_bps: u32,
+    pub kink_utilization_bps: u16,
 }
 
 #[event]
@@ -89,7 +93,47 @@ pub struct LendingPoolUpdated {
     pub lending_pool: Pubkey,
     pub borrow_cap_usdg: u64,
     pub reserve_factor_bps: u16,
+    pub base_rate_bps: u32,
+    pub slope1_bps: u32,
+    pub slope2_bps: u32,
+    pub kink_utilization_bps: u16,
     pub borrow_enabled: bool,
+}
+
+#[event]
+pub struct InterestAccrued {
+    pub lending_pool: Pubkey,
+    pub elapsed_seconds: u64,
+    pub utilization_bps: u16,
+    pub borrow_apr_bps: u32,
+    pub supply_apr_bps: u32,
+    pub gross_interest_usdg: u64,
+    pub supplier_interest_usdg: u64,
+    pub reserve_interest_usdg: u64,
+    pub total_borrowed_usdg: u64,
+    pub total_supplied_usdg: u64,
+    pub protocol_reserves_usdg: u64,
+    pub borrow_index_e18: u128,
+    pub supply_index_e18: u128,
+}
+
+#[event]
+pub struct BorrowerInterestSynced {
+    pub owner: Pubkey,
+    pub credit_account: Pubkey,
+    pub accrued_interest_usdg: u64,
+    pub debt_usdg: u64,
+    pub borrow_index_e18: u128,
+    pub health_factor_bps: u64,
+}
+
+#[event]
+pub struct SupplierInterestSynced {
+    pub supplier: Pubkey,
+    pub supplier_position: Pubkey,
+    pub accrued_interest_usdg: u64,
+    pub balance_usdg: u64,
+    pub supply_index_e18: u128,
 }
 
 #[event]
@@ -97,7 +141,8 @@ pub struct UsdgSupplied {
     pub supplier: Pubkey,
     pub lending_pool: Pubkey,
     pub amount: u64,
-    pub supplier_principal_usdg: u64,
+    pub accrued_interest_usdg: u64,
+    pub supplier_balance_usdg: u64,
     pub total_supplied_usdg: u64,
 }
 
@@ -106,7 +151,8 @@ pub struct UsdgSupplyWithdrawn {
     pub supplier: Pubkey,
     pub lending_pool: Pubkey,
     pub amount: u64,
-    pub supplier_principal_usdg: u64,
+    pub accrued_interest_usdg: u64,
+    pub supplier_balance_usdg: u64,
     pub total_supplied_usdg: u64,
 }
 
@@ -115,8 +161,10 @@ pub struct UsdgBorrowed {
     pub borrower: Pubkey,
     pub lending_pool: Pubkey,
     pub amount: u64,
+    pub accrued_interest_usdg: u64,
     pub new_debt_usdg: u64,
     pub total_borrowed_usdg: u64,
     pub borrow_limit_usd_micro: u64,
     pub health_factor_bps: u64,
+    pub borrow_apr_bps: u32,
 }

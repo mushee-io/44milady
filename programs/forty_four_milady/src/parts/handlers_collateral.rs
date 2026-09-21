@@ -65,6 +65,15 @@
         require!(!ctx.accounts.protocol_config.paused, MiladyError::ProtocolPaused);
         require!(amount > 0, MiladyError::InvalidAmount);
 
+        let now = Clock::get()?.unix_timestamp;
+        let pool_key = ctx.accounts.lending_pool.key();
+        accrue_pool_interest(&mut ctx.accounts.lending_pool, pool_key, now)?;
+        sync_borrower_debt(
+            &mut ctx.accounts.credit_account,
+            &ctx.accounts.lending_pool,
+            now,
+        )?;
+
         let market_key = ctx.accounts.market_config.key();
         reduce_collateral(&mut ctx.accounts.credit_account, market_key, amount)?;
         ctx.accounts.market_config.total_deposited = ctx
@@ -128,13 +137,23 @@
     /// matches the corresponding collateral entry.
     pub fn refresh_health(ctx: Context<RefreshHealth>) -> Result<()> {
         require!(!ctx.accounts.protocol_config.paused, MiladyError::ProtocolPaused);
+
+        let now = Clock::get()?.unix_timestamp;
+        let pool_key = ctx.accounts.lending_pool.key();
+        accrue_pool_interest(&mut ctx.accounts.lending_pool, pool_key, now)?;
+        sync_borrower_debt(
+            &mut ctx.accounts.credit_account,
+            &ctx.accounts.lending_pool,
+            now,
+        )?;
+
         let snapshot = compute_portfolio_risk(&ctx.accounts.credit_account, ctx.remaining_accounts)?;
         let account = &mut ctx.accounts.credit_account;
         account.last_collateral_value_usd_micro = snapshot.collateral_value_usd_micro;
         account.last_borrow_limit_usd_micro = snapshot.borrow_limit_usd_micro;
         account.last_liquidation_capacity_usd_micro = snapshot.liquidation_capacity_usd_micro;
         account.last_health_factor_bps = snapshot.health_factor_bps;
-        account.last_valuation_ts = Clock::get()?.unix_timestamp;
+        account.last_valuation_ts = now;
 
         emit!(HealthRefreshed {
             credit_account: account.key(),

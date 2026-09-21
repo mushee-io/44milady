@@ -177,12 +177,6 @@ fn health_factor_bps_for_debt(liquidation_capacity_usd_micro: u64, debt_usdg: u6
     Ok(u64::try_from(health).unwrap_or(u64::MAX))
 }
 
-fn pool_available_liquidity(pool: &LendingPool) -> Result<u64> {
-    pool.total_supplied_usdg
-        .checked_sub(pool.total_borrowed_usdg)
-        .ok_or_else(|| error!(MiladyError::PoolAccountingInvariant))
-}
-
 fn token_value_usd_micro(amount: u64, decimals: u8, price: i64, exponent: i32) -> Result<u64> {
     require!(price > 0, MiladyError::InvalidOraclePrice);
     let price_u128 = u128::try_from(price).map_err(|_| error!(MiladyError::InvalidOraclePrice))?;

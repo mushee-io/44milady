@@ -21,6 +21,8 @@ pub const MAX_LIQUIDATION_BONUS_BPS: u16 = 2_500;
 pub const MAX_CONFIDENCE_BPS: u16 = 2_000;
 pub const MAX_ORACLE_AGE_SECS: u32 = 3_600;
 pub const MAX_RESERVE_FACTOR_BPS: u16 = 5_000;
+pub const MAX_BORROW_APR_BPS: u32 = 100_000;
+pub const SECONDS_PER_YEAR: u64 = 31_536_000;
 
 mod handlers_admin {
     use super::*;
@@ -95,12 +97,24 @@ pub mod forty_four_milady {
     pub fn borrow_usdg(ctx: Context<BorrowUsdg>, amount: u64) -> Result<()> {
         handlers_lending::borrow_usdg(ctx, amount)
     }
+
+    // Milestone 7 — utilization-based interest and index synchronization.
+    pub fn accrue_interest(ctx: Context<AccrueInterest>) -> Result<()> {
+        handlers_lending::accrue_interest(ctx)
+    }
+    pub fn sync_borrower_interest(ctx: Context<SyncBorrowerInterest>) -> Result<()> {
+        handlers_lending::sync_borrower_interest(ctx)
+    }
+    pub fn sync_supplier_interest(ctx: Context<SyncSupplierInterest>) -> Result<()> {
+        handlers_lending::sync_supplier_interest(ctx)
+    }
 }
 
 include!("parts/accounts_admin.rs");
 include!("parts/accounts_collateral.rs");
 include!("parts/accounts_lending.rs");
 include!("parts/state.rs");
+include!("parts/interest.rs");
 include!("parts/risk.rs");
 include!("parts/events.rs");
 include!("parts/errors.rs");
