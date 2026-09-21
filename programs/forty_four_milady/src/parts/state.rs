@@ -60,8 +60,11 @@ pub struct CollateralBalance {
 #[derive(InitSpace)]
 pub struct CreditAccount {
     pub owner: Pubkey,
-    /// USDG uses 6 decimals, so raw debt units are also USD micro-units.
+    /// USDG has 6 decimals, so raw debt units equal USD micro-units.
     pub debt_usdg: u64,
+    /// Reserved now so Milestone 7 can add indexed interest without a schema break.
+    pub borrow_index_snapshot_e18: u128,
+    pub last_borrow_ts: i64,
     #[max_len(8)]
     pub collaterals: Vec<CollateralBalance>,
     pub last_collateral_value_usd_micro: u64,
@@ -69,6 +72,38 @@ pub struct CreditAccount {
     pub last_liquidation_capacity_usd_micro: u64,
     pub last_health_factor_bps: u64,
     pub last_valuation_ts: i64,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct LendingPool {
+    pub protocol: Pubkey,
+    pub usdg_mint: Pubkey,
+    pub liquidity_vault: Pubkey,
+    pub total_supplied_usdg: u64,
+    pub total_borrowed_usdg: u64,
+    /// Zero means uncapped on Devnet.
+    pub borrow_cap_usdg: u64,
+    /// Initialized at 1e18. Milestone 7 starts mutating these indexes.
+    pub borrow_index_e18: u128,
+    pub supply_index_e18: u128,
+    pub last_accrual_ts: i64,
+    pub reserve_factor_bps: u16,
+    pub borrow_enabled: bool,
+    pub bump: u8,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct SupplierPosition {
+    pub owner: Pubkey,
+    pub lending_pool: Pubkey,
+    /// Principal-only balance until Milestone 7 activates supply interest.
+    pub principal_usdg: u64,
+    pub supply_index_snapshot_e18: u128,
+    pub created_at: i64,
+    pub last_updated_ts: i64,
     pub bump: u8,
 }
 
@@ -83,7 +118,7 @@ pub struct RegisterMarketArgs {
     pub max_price_age_secs: u32,
     /// Raw token units. Zero means uncapped on Devnet.
     pub supply_cap: u64,
-    /// USDG raw units (6 decimals). Reserved for Milestone 6 borrowing.
+    /// Reserved for per-market debt attribution in a later risk milestone.
     pub debt_ceiling_usdg: u64,
 }
 
@@ -98,4 +133,19 @@ pub struct UpdateMarketArgs {
     pub supply_cap: u64,
     pub debt_ceiling_usdg: u64,
     pub enabled: bool,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct InitializeLendingPoolArgs {
+    /// Zero means uncapped on Devnet.
+    pub borrow_cap_usdg: u64,
+    /// Stored for Milestone 7 interest economics.
+    pub reserve_factor_bps: u16,
+}
+
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct UpdateLendingPoolArgs {
+    pub borrow_cap_usdg: u64,
+    pub reserve_factor_bps: u16,
+    pub borrow_enabled: bool,
 }

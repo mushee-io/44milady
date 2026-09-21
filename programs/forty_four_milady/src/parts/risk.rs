@@ -86,22 +86,32 @@ fn compute_portfolio_risk<'info>(
     let liquidation_capacity_u64 =
         u64::try_from(liquidation_capacity).map_err(|_| error!(MiladyError::MathOverflow))?;
 
-    let health_factor_bps = if credit_account.debt_usdg == 0 {
-        u64::MAX
-    } else {
-        let health = liquidation_capacity
-            .checked_mul(u128::from(BPS_DENOMINATOR))
-            .ok_or(MiladyError::MathOverflow)?
-            / u128::from(credit_account.debt_usdg);
-        u64::try_from(health).unwrap_or(u64::MAX)
-    };
-
     Ok(RiskSnapshot {
         collateral_value_usd_micro: total_value_u64,
         borrow_limit_usd_micro: borrow_limit_u64,
         liquidation_capacity_usd_micro: liquidation_capacity_u64,
-        health_factor_bps,
+        health_factor_bps: health_factor_bps_for_debt(
+            liquidation_capacity_u64,
+            credit_account.debt_usdg,
+        )?,
     })
+}
+
+fn health_factor_bps_for_debt(liquidation_capacity_usd_micro: u64, debt_usdg: u64) -> Result<u64> {
+    if debt_usdg == 0 {
+        return Ok(u64::MAX);
+    }
+    let health = u128::from(liquidation_capacity_usd_micro)
+        .checked_mul(u128::from(BPS_DENOMINATOR))
+        .ok_or(MiladyError::MathOverflow)?
+        / u128::from(debt_usdg);
+    Ok(u64::try_from(health).unwrap_or(u64::MAX))
+}
+
+fn pool_available_liquidity(pool: &LendingPool) -> Result<u64> {
+    pool.total_supplied_usdg
+        .checked_sub(pool.total_borrowed_usdg)
+        .ok_or_else(|| error!(MiladyError::PoolAccountingInvariant))
 }
 
 fn token_value_usd_micro(amount: u64, decimals: u8, price: i64, exponent: i32) -> Result<u64> {
@@ -245,6 +255,3 @@ fn validate_risk_parameters(
     );
     Ok(())
 }
-
-// -----------------------------------------------------------------------------
-// Events

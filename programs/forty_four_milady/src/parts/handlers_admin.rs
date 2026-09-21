@@ -3,7 +3,7 @@
         config.authority = ctx.accounts.authority.key();
         config.treasury = ctx.accounts.treasury.key();
         config.emergency_authority = ctx.accounts.emergency_authority.key();
-        config.version = 2;
+        config.version = 3;
         config.paused = false;
         config.bump = ctx.bumps.protocol_config;
 
@@ -151,8 +151,8 @@
         }
 
         let amount = ctx.accounts.faucet_config.amount_per_claim;
-        let bump = protocol.bump;
-        let signer_seeds: &[&[u8]] = &[PROTOCOL_SEED, &[bump]];
+        let bump_seed = [protocol.bump];
+        let signer_seeds: &[&[u8]] = &[PROTOCOL_SEED, &bump_seed];
         let signer = &[signer_seeds];
 
         let cpi_accounts = MintTo {
@@ -182,4 +182,3 @@
 
         Ok(())
     }
-

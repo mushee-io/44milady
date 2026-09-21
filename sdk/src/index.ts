@@ -8,8 +8,12 @@ export const CREDIT_SEED = "credit" as const;
 export const VAULT_SEED = "vault" as const;
 export const FAUCET_SEED = "faucet" as const;
 export const CLAIM_SEED = "claim" as const;
+export const LENDING_POOL_SEED = "lending_pool" as const;
+export const LIQUIDITY_VAULT_SEED = "liquidity_vault" as const;
+export const SUPPLIER_SEED = "supplier" as const;
 export const BPS_DENOMINATOR = 10_000;
 export const USD_MICRO = 1_000_000;
+export const INDEX_SCALE_E18 = 1_000_000_000_000_000_000n;
 export const MAX_COLLATERAL_ASSETS = 8;
 
 export type ProtocolStatus = {
@@ -33,6 +37,14 @@ export type RiskSnapshot = {
   liquidationCapacityUsdMicro: bigint;
   debtUsdg: bigint;
   healthFactorBps: bigint | null;
+};
+
+export type LendingPoolSnapshot = {
+  totalSuppliedUsdg: bigint;
+  totalBorrowedUsdg: bigint;
+  borrowCapUsdg: bigint;
+  borrowEnabled: boolean;
+  reserveFactorBps: number;
 };
 
 export function encodeSymbol(symbol: string): number[] {
@@ -72,6 +84,49 @@ export function collateralVaultPda(
     [Buffer.from(VAULT_SEED), creditAccount.toBuffer(), market.toBuffer()],
     programId,
   )[0];
+}
+
+export function lendingPoolPda(programId: PublicKey, usdgMint: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(LENDING_POOL_SEED), usdgMint.toBuffer()],
+    programId,
+  )[0];
+}
+
+export function liquidityVaultPda(programId: PublicKey, lendingPool: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(LIQUIDITY_VAULT_SEED), lendingPool.toBuffer()],
+    programId,
+  )[0];
+}
+
+export function supplierPositionPda(
+  programId: PublicKey,
+  lendingPool: PublicKey,
+  supplier: PublicKey,
+): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from(SUPPLIER_SEED), lendingPool.toBuffer(), supplier.toBuffer()],
+    programId,
+  )[0];
+}
+
+export function availableLiquidity(pool: LendingPoolSnapshot): bigint {
+  if (pool.totalBorrowedUsdg > pool.totalSuppliedUsdg) {
+    throw new Error("pool accounting invariant violated");
+  }
+  return pool.totalSuppliedUsdg - pool.totalBorrowedUsdg;
+}
+
+export function availableBorrow(snapshot: RiskSnapshot): bigint {
+  return snapshot.borrowLimitUsdMicro > snapshot.debtUsdg
+    ? snapshot.borrowLimitUsdMicro - snapshot.debtUsdg
+    : 0n;
+}
+
+export function utilizationBps(pool: LendingPoolSnapshot): bigint {
+  if (pool.totalSuppliedUsdg === 0n) return 0n;
+  return (pool.totalBorrowedUsdg * 10_000n) / pool.totalSuppliedUsdg;
 }
 
 export function healthLabel(healthFactorBps: bigint | null): "NO DEBT" | "SAFE" | "CAUTION" | "DANGER" | "LIQUIDATABLE" {

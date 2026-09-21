@@ -17,3 +17,16 @@ Milestones 2–5 acceptance cases:
 - multi-collateral valuation applies each market's own LTV and liquidation threshold;
 - risk snapshots calculate collateral value, borrow limit, liquidation capacity and health factor;
 - unsafe collateral withdrawal is rejected once debt is enabled.
+
+Milestone 6 acceptance cases:
+- only protocol authority can initialize/reconfigure the USDG lending pool;
+- USDG mints with decimals other than 6 are rejected;
+- supplying USDG increases both lender principal and pool supplied accounting;
+- suppliers cannot withdraw more principal than they own;
+- suppliers cannot withdraw liquidity currently borrowed by users;
+- borrowing is rejected while the pool borrow switch is disabled;
+- borrowing is rejected when pool liquidity or borrow cap is insufficient;
+- borrow amount is limited by fresh Pyth-valued collateral LTV;
+- successful borrow transfers real Devnet USDG from the pool vault to the borrower;
+- successful borrow increments both user debt and pool total borrowed;
+- borrowers cannot withdraw collateral into an over-LTV or liquidatable state.

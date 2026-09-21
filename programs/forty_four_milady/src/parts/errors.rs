@@ -8,7 +8,7 @@ pub enum MiladyError {
     InvalidProtocol,
     #[msg("Amount must be greater than zero.")]
     InvalidAmount,
-    #[msg("Token mint does not match the configured market.")]
+    #[msg("Token mint does not match the configured market or pool.")]
     InvalidMint,
     #[msg("Market symbol must not be empty.")]
     InvalidSymbol,
@@ -40,7 +40,7 @@ pub enum MiladyError {
     CollateralNotFound,
     #[msg("Insufficient deposited collateral.")]
     InsufficientCollateral,
-    #[msg("Withdrawal would leave the account unsafe.")]
+    #[msg("Withdrawal would leave the account above its safe borrowing limit.")]
     UnsafeWithdrawal,
     #[msg("Risk refresh accounts are missing or incorrectly ordered.")]
     InvalidRiskAccounts,
@@ -56,6 +56,30 @@ pub enum MiladyError {
     InvalidOraclePrice,
     #[msg("Oracle confidence interval is wider than this market permits.")]
     OracleConfidenceTooWide,
+    #[msg("USDG must use exactly 6 decimals.")]
+    InvalidUsdgDecimals,
+    #[msg("Reserve factor is outside the supported range.")]
+    InvalidReserveFactor,
+    #[msg("Borrowing is disabled for this lending pool.")]
+    BorrowingDisabled,
+    #[msg("Borrow would exceed the pool borrow cap.")]
+    BorrowCapExceeded,
+    #[msg("Borrow cap cannot be set below outstanding debt.")]
+    BorrowCapBelowOutstandingDebt,
+    #[msg("The pool does not have enough available USDG.")]
+    InsufficientLiquidity,
+    #[msg("The requested borrow would exceed this account's collateral borrowing limit.")]
+    BorrowLimitExceeded,
+    #[msg("The requested borrow would make this account immediately liquidatable.")]
+    BorrowWouldBeLiquidatable,
+    #[msg("Supplier position does not have enough supplied principal.")]
+    InsufficientSupply,
+    #[msg("Liquidity vault does not match the lending pool.")]
+    InvalidLiquidityVault,
+    #[msg("Supplier position does not belong to this lending pool.")]
+    InvalidLendingPool,
+    #[msg("Lending pool supplied/borrowed accounting invariant is broken.")]
+    PoolAccountingInvariant,
     #[msg("Arithmetic overflow or underflow.")]
     MathOverflow,
 }
