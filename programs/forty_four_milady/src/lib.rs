@@ -52,6 +52,27 @@ pub mod forty_four_milady {
     pub fn set_pause(ctx: Context<SetPause>, paused: bool) -> Result<()> {
         handlers_admin::set_pause(ctx, paused)
     }
+    pub fn propose_authority(ctx: Context<ProposeAuthority>, new_authority: Pubkey) -> Result<()> {
+        handlers_admin::propose_authority(ctx, new_authority)
+    }
+    pub fn accept_authority(ctx: Context<AcceptAuthority>) -> Result<()> {
+        handlers_admin::accept_authority(ctx)
+    }
+    pub fn cancel_authority_transfer(ctx: Context<ProposeAuthority>) -> Result<()> {
+        handlers_admin::cancel_authority_transfer(ctx)
+    }
+    pub fn propose_emergency_authority(
+        ctx: Context<ProposeEmergencyAuthority>,
+        new_emergency_authority: Pubkey,
+    ) -> Result<()> {
+        handlers_admin::propose_emergency_authority(ctx, new_emergency_authority)
+    }
+    pub fn accept_emergency_authority(ctx: Context<AcceptEmergencyAuthority>) -> Result<()> {
+        handlers_admin::accept_emergency_authority(ctx)
+    }
+    pub fn set_treasury(ctx: Context<SetTreasury>, treasury: Pubkey) -> Result<()> {
+        handlers_admin::set_treasury(ctx, treasury)
+    }
     pub fn register_market(ctx: Context<RegisterMarket>, args: RegisterMarketArgs) -> Result<()> {
         handlers_admin::register_market(ctx, args)
     }
