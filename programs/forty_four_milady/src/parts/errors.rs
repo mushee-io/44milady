@@ -120,6 +120,12 @@ pub enum MiladyError {
     BadDebtCoverageExceedsDeficit,
     #[msg("Pool claims are below recorded bad debt; the pool is insolvent.")]
     PoolInsolvent,
+    #[msg("Admin address must be non-zero and different where required.")]
+    InvalidAdminAddress,
+    #[msg("There is no pending protocol-authority transfer.")]
+    NoPendingAuthorityTransfer,
+    #[msg("There is no pending emergency-authority transfer.")]
+    NoPendingEmergencyAuthorityTransfer,
     #[msg("Arithmetic overflow or underflow.")]
     MathOverflow,
 }
