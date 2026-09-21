@@ -98,4 +98,86 @@ mod tests {
         pool.total_borrowed_usdg = 8_800_000_000;
         assert_eq!(pool_available_liquidity(&pool).unwrap(), 2_000_000_000);
     }
+    #[test]
+    fn repayment_resolution_supports_partial_and_max() {
+        assert_eq!(
+            handlers_lending::resolve_repayment_amount(1_000_000_000, Some(250_000_000)).unwrap(),
+            250_000_000
+        );
+        assert_eq!(
+            handlers_lending::resolve_repayment_amount(1_000_000_000, None).unwrap(),
+            1_000_000_000
+        );
+        assert!(
+            handlers_lending::resolve_repayment_amount(1_000_000_000, Some(1_000_000_001)).is_err()
+        );
+        assert!(handlers_lending::resolve_repayment_amount(0, None).is_err());
+    }
+
+    #[test]
+    fn repayment_reduces_debt_and_restores_pool_liquidity() {
+        let mut pool = test_pool();
+        let before = pool_available_liquidity(&pool).unwrap();
+
+        let mut account = CreditAccount {
+            owner: Pubkey::default(),
+            debt_usdg: 3_000_000_000,
+            borrow_index_snapshot_e18: pool.borrow_index_e18,
+            last_borrow_ts: 0,
+            collaterals: Vec::new(),
+            last_collateral_value_usd_micro: 6_000_000_000,
+            last_borrow_limit_usd_micro: 4_000_000_000,
+            last_liquidation_capacity_usd_micro: 4_000_000_000,
+            last_health_factor_bps: 13_333,
+            last_valuation_ts: 0,
+            bump: 255,
+        };
+
+        let (remaining, health) = handlers_lending::apply_repayment_accounting(
+            &mut account,
+            &mut pool,
+            1_000_000_000,
+            1,
+        )
+        .unwrap();
+
+        assert_eq!(remaining, 2_000_000_000);
+        assert_eq!(account.debt_usdg, 2_000_000_000);
+        assert_eq!(pool.total_borrowed_usdg, 7_000_000_000);
+        assert_eq!(health, 20_000);
+        assert_eq!(pool_available_liquidity(&pool).unwrap(), before + 1_000_000_000);
+    }
+
+    #[test]
+    fn full_repayment_sets_no_debt_health() {
+        let mut pool = test_pool();
+        pool.total_borrowed_usdg = 1_000_000_000;
+
+        let mut account = CreditAccount {
+            owner: Pubkey::default(),
+            debt_usdg: 1_000_000_000,
+            borrow_index_snapshot_e18: pool.borrow_index_e18,
+            last_borrow_ts: 0,
+            collaterals: Vec::new(),
+            last_collateral_value_usd_micro: 2_000_000_000,
+            last_borrow_limit_usd_micro: 1_200_000_000,
+            last_liquidation_capacity_usd_micro: 1_500_000_000,
+            last_health_factor_bps: 15_000,
+            last_valuation_ts: 0,
+            bump: 255,
+        };
+
+        let (remaining, health) = handlers_lending::apply_repayment_accounting(
+            &mut account,
+            &mut pool,
+            1_000_000_000,
+            1,
+        )
+        .unwrap();
+
+        assert_eq!(remaining, 0);
+        assert_eq!(health, u64::MAX);
+        assert_eq!(pool.total_borrowed_usdg, 0);
+    }
+
 }
