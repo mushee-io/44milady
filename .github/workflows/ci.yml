@@ -40,6 +40,7 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           toolchain: stable
+          rustflags: ""
       - name: Install Solana 2.1.0
         run: sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.0/install)"
       - name: Add Solana to PATH
