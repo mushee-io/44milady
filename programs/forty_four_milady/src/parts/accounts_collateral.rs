@@ -73,6 +73,13 @@ pub struct WithdrawCollateral<'info> {
     pub credit_account: Account<'info, CreditAccount>,
     #[account(
         mut,
+        seeds = [LENDING_POOL_SEED, lending_pool.usdg_mint.as_ref()],
+        bump = lending_pool.bump,
+        constraint = lending_pool.protocol == protocol_config.key() @ MiladyError::InvalidProtocol
+    )]
+    pub lending_pool: Account<'info, LendingPool>,
+    #[account(
+        mut,
         seeds = [MARKET_SEED, collateral_mint.key().as_ref()],
         bump = market_config.bump,
         constraint = market_config.protocol == protocol_config.key() @ MiladyError::InvalidProtocol,
@@ -106,4 +113,11 @@ pub struct RefreshHealth<'info> {
     pub protocol_config: Account<'info, ProtocolConfig>,
     #[account(mut, seeds = [CREDIT_SEED, credit_account.owner.as_ref()], bump = credit_account.bump)]
     pub credit_account: Account<'info, CreditAccount>,
+    #[account(
+        mut,
+        seeds = [LENDING_POOL_SEED, lending_pool.usdg_mint.as_ref()],
+        bump = lending_pool.bump,
+        constraint = lending_pool.protocol == protocol_config.key() @ MiladyError::InvalidProtocol
+    )]
+    pub lending_pool: Account<'info, LendingPool>,
 }
