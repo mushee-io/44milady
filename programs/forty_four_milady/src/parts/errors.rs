@@ -104,6 +104,22 @@ pub enum MiladyError {
     CollateralVaultNotEmpty,
     #[msg("Collateral market is still recorded on the credit account.")]
     CollateralStillRecorded,
+    #[msg("Liquidation close factor must be between 1 and 10000 basis points.")]
+    InvalidCloseFactor,
+    #[msg("Liquidations are disabled for this lending pool.")]
+    LiquidationDisabled,
+    #[msg("The borrower is not below the liquidation health threshold.")]
+    PositionNotLiquidatable,
+    #[msg("The liquidation amount is too small after close-factor/collateral caps.")]
+    LiquidationTooSmall,
+    #[msg("Collateral vault balance is below the protocol's recorded collateral.")]
+    CollateralVaultAccountingMismatch,
+    #[msg("Collateral remains and must be liquidated before bad debt can be written off.")]
+    CollateralRemainsForLiquidation,
+    #[msg("Bad-debt recapitalization exceeds the recorded deficit.")]
+    BadDebtCoverageExceedsDeficit,
+    #[msg("Pool claims are below recorded bad debt; the pool is insolvent.")]
+    PoolInsolvent,
     #[msg("Arithmetic overflow or underflow.")]
     MathOverflow,
 }
