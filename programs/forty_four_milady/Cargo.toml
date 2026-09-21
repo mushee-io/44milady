@@ -20,8 +20,5 @@ idl-build = [
 ]
 
 [dependencies]
-# Exact pins are intentional. Anchor/Pyth serialization compatibility can break
-# when Cargo floats to newer minor releases with different Borsh generations.
 anchor-lang = { version = "=0.31.1", features = ["init-if-needed"] }
 anchor-spl = "=0.31.1"
-pyth-solana-receiver-sdk = "=1.0.1"
