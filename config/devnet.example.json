@@ -1,0 +1,14 @@
+{
+  "rpcUrl": "https://api.devnet.solana.com",
+  "treasury": "",
+  "emergencyAuthority": "",
+  "faucetCooldownSeconds": 3600,
+  "assets": [
+    {"symbol":"USDG","decimals":6,"faucetAmount":"10000"},
+    {"symbol":"NVDAx","decimals":6,"faucetAmount":"100","feedId":"REPLACE_WITH_32_BYTE_PYTH_FEED_ID","priceAccount":"REPLACE_WITH_PYTH_DEVNET_PRICE_FEED_ACCOUNT","ltvBps":6000,"liquidationThresholdBps":7500,"liquidationBonusBps":500,"maxConfidenceBps":300,"maxPriceAgeSecs":120,"supplyCap":"1000000","debtCeilingUsdg":"0"},
+    {"symbol":"AAPLx","decimals":6,"faucetAmount":"100","feedId":"REPLACE_WITH_32_BYTE_PYTH_FEED_ID","priceAccount":"REPLACE_WITH_PYTH_DEVNET_PRICE_FEED_ACCOUNT","ltvBps":6000,"liquidationThresholdBps":7500,"liquidationBonusBps":500,"maxConfidenceBps":300,"maxPriceAgeSecs":120,"supplyCap":"1000000","debtCeilingUsdg":"0"},
+    {"symbol":"SPYx","decimals":6,"faucetAmount":"100","feedId":"REPLACE_WITH_32_BYTE_PYTH_FEED_ID","priceAccount":"REPLACE_WITH_PYTH_DEVNET_PRICE_FEED_ACCOUNT","ltvBps":7000,"liquidationThresholdBps":8000,"liquidationBonusBps":400,"maxConfidenceBps":250,"maxPriceAgeSecs":120,"supplyCap":"1000000","debtCeilingUsdg":"0"},
+    {"symbol":"TSLAx","decimals":6,"faucetAmount":"100","feedId":"REPLACE_WITH_32_BYTE_PYTH_FEED_ID","priceAccount":"REPLACE_WITH_PYTH_DEVNET_PRICE_FEED_ACCOUNT","ltvBps":5000,"liquidationThresholdBps":6500,"liquidationBonusBps":700,"maxConfidenceBps":400,"maxPriceAgeSecs":120,"supplyCap":"1000000","debtCeilingUsdg":"0"}
+  ],
+  "pool": {"borrowCapUsdg":"1000000","reserveFactorBps":1000,"baseRateBps":200,"slope1Bps":800,"slope2Bps":5000,"kinkUtilizationBps":8000,"liquidationCloseFactorBps":5000,"insuranceSeedUsdg":"10000"}
+}

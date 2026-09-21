@@ -1,0 +1,91 @@
+name: 44 Milady Devnet Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      run_e2e:
+        description: Run live supply/borrow/repay smoke test after bootstrap
+        required: true
+        default: false
+        type: boolean
+
+concurrency:
+  group: 44-milady-devnet-release
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: devnet
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+
+      - name: Install Solana 2.1.0
+        run: sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.0/install)"
+
+      - name: Add Solana to PATH
+        run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install Anchor 0.31.1
+        run: |
+          cargo install --git https://github.com/solana-foundation/anchor avm --force
+          avm install 0.31.1
+          avm use 0.31.1
+          echo "$HOME/.avm/bin" >> "$GITHUB_PATH"
+
+      - run: npm install
+
+      - name: Materialize release secrets
+        env:
+          DEVNET_DEPLOYER_KEYPAIR_JSON: ${{ secrets.DEVNET_DEPLOYER_KEYPAIR_JSON }}
+          PROGRAM_KEYPAIR_JSON: ${{ secrets.PROGRAM_KEYPAIR_JSON }}
+          DEVNET_CONFIG_JSON: ${{ secrets.DEVNET_CONFIG_JSON }}
+        run: |
+          test -n "$DEVNET_DEPLOYER_KEYPAIR_JSON" || (echo "Missing DEVNET_DEPLOYER_KEYPAIR_JSON" && exit 1)
+          test -n "$PROGRAM_KEYPAIR_JSON" || (echo "Missing PROGRAM_KEYPAIR_JSON" && exit 1)
+          test -n "$DEVNET_CONFIG_JSON" || (echo "Missing DEVNET_CONFIG_JSON" && exit 1)
+          mkdir -p target/deploy config deployments
+          printf '%s' "$DEVNET_DEPLOYER_KEYPAIR_JSON" > /tmp/44milady-deployer.json
+          printf '%s' "$PROGRAM_KEYPAIR_JSON" > target/deploy/forty_four_milady-keypair.json
+          printf '%s' "$DEVNET_CONFIG_JSON" > config/devnet.local.json
+          chmod 600 /tmp/44milady-deployer.json target/deploy/forty_four_milady-keypair.json
+          echo "ANCHOR_WALLET=/tmp/44milady-deployer.json" >> "$GITHUB_ENV"
+          echo "SOLANA_RPC_URL=https://api.devnet.solana.com" >> "$GITHUB_ENV"
+
+      - name: Verify canonical program ID
+        run: |
+          EXPECTED="$(solana-keygen pubkey target/deploy/forty_four_milady-keypair.json)"
+          grep -q "declare_id!(\"$EXPECTED\")" programs/forty_four_milady/src/lib.rs || (echo "lib.rs program id does not match PROGRAM_KEYPAIR_JSON: $EXPECTED" && exit 1)
+          grep -q "forty_four_milady = \"$EXPECTED\"" Anchor.toml || (echo "Anchor.toml program id does not match PROGRAM_KEYPAIR_JSON: $EXPECTED" && exit 1)
+          REQUIRE_NON_PLACEHOLDER_ID=1 npm run release:check
+
+      - name: Build SBF
+        run: anchor build
+
+      - name: Deploy program
+        run: anchor deploy
+
+      - name: Bootstrap Devnet protocol
+        run: npm run devnet:bootstrap
+
+      - name: Verify Devnet deployment
+        run: npm run devnet:verify
+
+      - name: Live E2E
+        if: ${{ inputs.run_e2e }}
+        run: npm run devnet:e2e
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: 44milady-devnet-public-addresses
+          path: deployments/devnet.local.json
+          if-no-files-found: error
+          retention-days: 30
