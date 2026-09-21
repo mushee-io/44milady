@@ -76,6 +76,18 @@ function accrueOneYear(pool) {
   };
 }
 
+function repay(pool, debt, requested = null) {
+  assert(debt > 0n, "no debt");
+  const amount = requested === null ? debt : requested;
+  assert(amount > 0n && amount <= debt, "invalid repay amount");
+  assert(amount <= pool.borrowed, "pool debt invariant");
+  return {
+    pool: { ...pool, borrowed: pool.borrowed - amount },
+    debt: debt - amount,
+    amount,
+  };
+}
+
 // M2-M5 collateral/risk model.
 const collateral = tokenValueMicro(10_000_000n, 6, 19_025_000_000n, -8);
 assert.equal(collateral, 1_902_500_000n);
@@ -137,7 +149,25 @@ assert.equal(
   2_000_000_000n,
 );
 
-console.log("44 Milady M2-M7 model checks: PASS");
+// M8 repayment restores pool liquidity exactly by the amount repaid.
+const partial = repay(accrued, 3_000_000_000n, 1_000_000_000n);
+assert.equal(partial.debt, 2_000_000_000n);
+assert.equal(partial.pool.borrowed, accrued.borrowed - 1_000_000_000n);
+assert.equal(
+  availableLiquidity(partial.pool.supplied, partial.pool.borrowed, partial.pool.reserves),
+  3_000_000_000n,
+);
+
+// MAX repayment clears the synchronized debt and makes the position debt-free.
+const maxRepay = repay(partial.pool, partial.debt);
+assert.equal(maxRepay.debt, 0n);
+assert.equal(maxRepay.amount, 2_000_000_000n);
+assert.equal(
+  availableLiquidity(maxRepay.pool.supplied, maxRepay.pool.borrowed, maxRepay.pool.reserves),
+  5_000_000_000n,
+);
+
+console.log("44 Milady M2-M8 model checks: PASS");
 console.log({
   collateralUsd: Number(total) / 1e6,
   maxBorrowUsd: Number(borrowLimit) / 1e6,
@@ -146,4 +176,7 @@ console.log({
   annualGrossInterestUsd: Number(accrued.gross) / 1e6,
   annualSupplierInterestUsd: Number(accrued.supplier) / 1e6,
   annualProtocolReserveUsd: Number(accrued.reserve) / 1e6,
+  partialRepayUsd: Number(partial.amount) / 1e6,
+  remainingDebtUsd: Number(partial.debt) / 1e6,
+  maxRepayUsd: Number(maxRepay.amount) / 1e6,
 });
