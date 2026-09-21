@@ -1,0 +1,10 @@
+{
+  "name": "@44milady/sdk",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "dependencies": {
+    "@solana/web3.js": "^1.98.4"
+  }
+}

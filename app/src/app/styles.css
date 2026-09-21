@@ -1,0 +1,19 @@
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; background: #f4f2ec; color: #111; font-family: Arial, Helvetica, sans-serif; }
+body { min-height: 100vh; }
+main { max-width: 1180px; margin: 0 auto; padding: 48px 28px 80px; }
+header { display: flex; justify-content: space-between; gap: 32px; align-items: flex-start; border-bottom: 2px solid #111; padding-bottom: 34px; }
+.eyebrow { letter-spacing: .13em; font-size: 12px; font-weight: 700; }
+h1 { margin: 8px 0 12px; font-size: clamp(64px, 11vw, 148px); line-height: .85; letter-spacing: -.07em; }
+h2 { margin: 6px 0 10px; font-size: 42px; letter-spacing: -.04em; }
+.lede { max-width: 720px; font-size: 20px; line-height: 1.45; }
+button { border: 1.5px solid #111; background: #111; color: white; padding: 14px 18px; font-weight: 700; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); border-left: 1px solid #111; margin-top: 36px; }
+article { min-height: 150px; padding: 20px; border-right: 1px solid #111; border-top: 1px solid #111; border-bottom: 1px solid #111; display: flex; flex-direction: column; justify-content: space-between; }
+article span { font-size: 12px; text-transform: uppercase; letter-spacing: .1em; }
+article strong { font-size: 24px; }
+.panel { margin-top: 72px; border-top: 2px solid #111; padding-top: 26px; max-width: 800px; }
+.panel p:last-child { font-size: 18px; line-height: 1.55; }
+@media (max-width: 800px) { header { flex-direction: column; } .grid { grid-template-columns: 1fr 1fr; } }
+
+.milestone-list,.market-table{display:grid;gap:0;border-top:1px solid #242424;margin-top:24px}.milestone-row,.market-row{display:grid;grid-template-columns:80px 1fr 140px;gap:18px;align-items:center;padding:18px 0;border-bottom:1px solid #242424}.milestone-row em{font-style:normal;text-align:right;color:#9bff93}.market-row{grid-template-columns:1fr repeat(3,minmax(120px,1fr))}.market-row span{color:#aaa}@media(max-width:760px){.market-row,.milestone-row{grid-template-columns:1fr;gap:7px}.milestone-row em{text-align:left}}

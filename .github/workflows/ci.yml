@@ -1,0 +1,38 @@
+name: 44 Milady CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  model-and-web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - run: npm test
+      - run: npm run build:web
+
+  anchor-build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+      - name: Install Solana 2.1.0
+        run: sh -c "$(curl -sSfL https://release.anza.xyz/v2.1.0/install)"
+      - name: Add Solana to PATH
+        run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+      - name: Install Anchor 0.31.1
+        run: |
+          cargo install --git https://github.com/solana-foundation/anchor avm --force
+          avm install 0.31.1
+          avm use 0.31.1
+          echo "$HOME/.avm/bin" >> "$GITHUB_PATH"
+      - name: Anchor build
+        run: anchor build
