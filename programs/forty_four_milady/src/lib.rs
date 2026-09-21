@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{self, CloseAccount, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::token_interface::{
+    self, CloseAccount, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked,
+};
 
 declare_id!("7ahY74GVSGRf9sDXFPtX6EnynoxWz2myNijQd7MPH5vF");
 
@@ -79,7 +81,11 @@ pub mod forty_four_milady {
     pub fn update_market(ctx: Context<UpdateMarket>, args: UpdateMarketArgs) -> Result<()> {
         handlers_admin::update_market(ctx, args)
     }
-    pub fn register_faucet_asset(ctx: Context<RegisterFaucetAsset>, amount_per_claim: u64, cooldown_seconds: u32) -> Result<()> {
+    pub fn register_faucet_asset(
+        ctx: Context<RegisterFaucetAsset>,
+        amount_per_claim: u64,
+        cooldown_seconds: u32,
+    ) -> Result<()> {
         handlers_admin::register_faucet_asset(ctx, amount_per_claim, cooldown_seconds)
     }
     pub fn set_faucet_status(ctx: Context<SetFaucetStatus>, enabled: bool) -> Result<()> {
@@ -169,19 +175,13 @@ pub mod forty_four_milady {
     pub fn liquidate(ctx: Context<Liquidate>, max_repay_usdg: u64) -> Result<()> {
         handlers_liquidation::liquidate(ctx, max_repay_usdg)
     }
-    pub fn fund_insurance_reserve(
-        ctx: Context<FundInsuranceReserve>,
-        amount: u64,
-    ) -> Result<()> {
+    pub fn fund_insurance_reserve(ctx: Context<FundInsuranceReserve>, amount: u64) -> Result<()> {
         handlers_liquidation::fund_insurance_reserve(ctx, amount)
     }
     pub fn absorb_bad_debt(ctx: Context<AbsorbBadDebt>) -> Result<()> {
         handlers_liquidation::absorb_bad_debt(ctx)
     }
-    pub fn recapitalize_bad_debt(
-        ctx: Context<RecapitalizeBadDebt>,
-        amount: u64,
-    ) -> Result<()> {
+    pub fn recapitalize_bad_debt(ctx: Context<RecapitalizeBadDebt>, amount: u64) -> Result<()> {
         handlers_liquidation::recapitalize_bad_debt(ctx, amount)
     }
 }
