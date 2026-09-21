@@ -2,12 +2,13 @@
   "name": "forty-four-milady",
   "private": true,
   "version": "0.2.0",
-  "workspaces": ["app", "sdk"],
+  "workspaces": ["app", "sdk", "keeper"],
   "scripts": {
     "dev": "npm --workspace app run dev",
     "build:web": "npm --workspace app run build",
     "test:structure": "node scripts/check-structure.mjs",
     "test:model": "node scripts/model-check.mjs",
-    "test": "npm run test:structure && npm run test:model"
+    "test:keeper": "npm --workspace keeper test",
+    "test": "npm run test:structure && npm run test:model && npm run test:keeper"
   }
 }
