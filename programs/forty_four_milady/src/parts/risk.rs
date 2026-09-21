@@ -45,7 +45,6 @@ struct PythPriceUpdateV2 {
 #[derive(Clone, Copy, Debug)]
 struct OraclePrice {
     price: i64,
-    conf: u64,
     exponent: i32,
 }
 
@@ -95,7 +94,6 @@ fn read_pyth_price(
 
     Ok(OraclePrice {
         price: update.price_message.price,
-        conf: update.price_message.conf,
         exponent: update.price_message.exponent,
     })
 }

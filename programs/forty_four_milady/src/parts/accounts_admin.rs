@@ -118,3 +118,38 @@ pub struct ClaimFaucet<'info> {
     pub system_program: Program<'info, System>,
 }
 
+
+#[derive(Accounts)]
+pub struct ProposeAuthority<'info> {
+    pub authority: Signer<'info>,
+    #[account(mut, seeds = [PROTOCOL_SEED], bump = protocol_config.bump)]
+    pub protocol_config: Account<'info, ProtocolConfig>,
+}
+
+#[derive(Accounts)]
+pub struct AcceptAuthority<'info> {
+    pub pending_authority: Signer<'info>,
+    #[account(mut, seeds = [PROTOCOL_SEED], bump = protocol_config.bump)]
+    pub protocol_config: Account<'info, ProtocolConfig>,
+}
+
+#[derive(Accounts)]
+pub struct ProposeEmergencyAuthority<'info> {
+    pub authority: Signer<'info>,
+    #[account(mut, seeds = [PROTOCOL_SEED], bump = protocol_config.bump)]
+    pub protocol_config: Account<'info, ProtocolConfig>,
+}
+
+#[derive(Accounts)]
+pub struct AcceptEmergencyAuthority<'info> {
+    pub pending_emergency_authority: Signer<'info>,
+    #[account(mut, seeds = [PROTOCOL_SEED], bump = protocol_config.bump)]
+    pub protocol_config: Account<'info, ProtocolConfig>,
+}
+
+#[derive(Accounts)]
+pub struct SetTreasury<'info> {
+    pub authority: Signer<'info>,
+    #[account(mut, seeds = [PROTOCOL_SEED], bump = protocol_config.bump)]
+    pub protocol_config: Account<'info, ProtocolConfig>,
+}

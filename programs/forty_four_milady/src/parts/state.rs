@@ -2,8 +2,10 @@
 #[derive(InitSpace)]
 pub struct ProtocolConfig {
     pub authority: Pubkey,
+    pub pending_authority: Pubkey,
     pub treasury: Pubkey,
     pub emergency_authority: Pubkey,
+    pub pending_emergency_authority: Pubkey,
     pub version: u16,
     pub paused: bool,
     pub bump: u8,

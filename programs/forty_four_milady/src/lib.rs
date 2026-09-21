@@ -1,5 +1,7 @@
 use anchor_lang::prelude::*;
-use anchor_spl::token_interface::{self, CloseAccount, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked};
+use anchor_spl::token_interface::{
+    self, CloseAccount, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked,
+};
 
 declare_id!("7ahY74GVSGRf9sDXFPtX6EnynoxWz2myNijQd7MPH5vF");
 
@@ -52,13 +54,38 @@ pub mod forty_four_milady {
     pub fn set_pause(ctx: Context<SetPause>, paused: bool) -> Result<()> {
         handlers_admin::set_pause(ctx, paused)
     }
+    pub fn propose_authority(ctx: Context<ProposeAuthority>, new_authority: Pubkey) -> Result<()> {
+        handlers_admin::propose_authority(ctx, new_authority)
+    }
+    pub fn accept_authority(ctx: Context<AcceptAuthority>) -> Result<()> {
+        handlers_admin::accept_authority(ctx)
+    }
+    pub fn cancel_authority_transfer(ctx: Context<ProposeAuthority>) -> Result<()> {
+        handlers_admin::cancel_authority_transfer(ctx)
+    }
+    pub fn propose_emergency_authority(
+        ctx: Context<ProposeEmergencyAuthority>,
+        new_emergency_authority: Pubkey,
+    ) -> Result<()> {
+        handlers_admin::propose_emergency_authority(ctx, new_emergency_authority)
+    }
+    pub fn accept_emergency_authority(ctx: Context<AcceptEmergencyAuthority>) -> Result<()> {
+        handlers_admin::accept_emergency_authority(ctx)
+    }
+    pub fn set_treasury(ctx: Context<SetTreasury>, treasury: Pubkey) -> Result<()> {
+        handlers_admin::set_treasury(ctx, treasury)
+    }
     pub fn register_market(ctx: Context<RegisterMarket>, args: RegisterMarketArgs) -> Result<()> {
         handlers_admin::register_market(ctx, args)
     }
     pub fn update_market(ctx: Context<UpdateMarket>, args: UpdateMarketArgs) -> Result<()> {
         handlers_admin::update_market(ctx, args)
     }
-    pub fn register_faucet_asset(ctx: Context<RegisterFaucetAsset>, amount_per_claim: u64, cooldown_seconds: u32) -> Result<()> {
+    pub fn register_faucet_asset(
+        ctx: Context<RegisterFaucetAsset>,
+        amount_per_claim: u64,
+        cooldown_seconds: u32,
+    ) -> Result<()> {
         handlers_admin::register_faucet_asset(ctx, amount_per_claim, cooldown_seconds)
     }
     pub fn set_faucet_status(ctx: Context<SetFaucetStatus>, enabled: bool) -> Result<()> {
@@ -148,19 +175,13 @@ pub mod forty_four_milady {
     pub fn liquidate(ctx: Context<Liquidate>, max_repay_usdg: u64) -> Result<()> {
         handlers_liquidation::liquidate(ctx, max_repay_usdg)
     }
-    pub fn fund_insurance_reserve(
-        ctx: Context<FundInsuranceReserve>,
-        amount: u64,
-    ) -> Result<()> {
+    pub fn fund_insurance_reserve(ctx: Context<FundInsuranceReserve>, amount: u64) -> Result<()> {
         handlers_liquidation::fund_insurance_reserve(ctx, amount)
     }
     pub fn absorb_bad_debt(ctx: Context<AbsorbBadDebt>) -> Result<()> {
         handlers_liquidation::absorb_bad_debt(ctx)
     }
-    pub fn recapitalize_bad_debt(
-        ctx: Context<RecapitalizeBadDebt>,
-        amount: u64,
-    ) -> Result<()> {
+    pub fn recapitalize_bad_debt(ctx: Context<RecapitalizeBadDebt>, amount: u64) -> Result<()> {
         handlers_liquidation::recapitalize_bad_debt(ctx, amount)
     }
 }

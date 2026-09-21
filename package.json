@@ -1,7 +1,7 @@
 {
   "name": "forty-four-milady",
   "private": true,
-  "version": "0.2.0",
+  "version": "1.0.0",
   "workspaces": ["app", "sdk", "keeper"],
   "scripts": {
     "dev": "npm --workspace app run dev",
@@ -9,6 +9,18 @@
     "test:structure": "node scripts/check-structure.mjs",
     "test:model": "node scripts/model-check.mjs",
     "test:keeper": "npm --workspace keeper test",
-    "test": "npm run test:structure && npm run test:model && npm run test:keeper"
+    "test:adversarial": "node scripts/adversarial-check.mjs",
+    "test:security": "node scripts/security-check.mjs",
+    "test": "npm run test:structure && npm run test:model && npm run test:keeper && npm run test:adversarial && npm run test:security",
+    "release:check": "node scripts/release-check.mjs",
+    "devnet:bootstrap": "node scripts/devnet/bootstrap.mjs",
+    "devnet:verify": "node scripts/devnet/verify.mjs",
+    "devnet:e2e": "node scripts/devnet/e2e.mjs",
+    "devnet:monitor": "node scripts/devnet/monitor.mjs"
+  },
+  "devDependencies": {
+    "@coral-xyz/anchor": "0.31.1",
+    "@solana/spl-token": "^0.4.14",
+    "@solana/web3.js": "^1.98.4"
   }
 }

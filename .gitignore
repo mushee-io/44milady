@@ -6,3 +6,8 @@ target/
 .env.local
 .DS_Store
 *.log
+*.keypair.json
+secrets/
+config/devnet.local.json
+deployments/devnet.local.json
+app/public/deployment.local.json

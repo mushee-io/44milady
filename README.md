@@ -95,7 +95,7 @@
 - bad-debt recapitalization with real USDG
 - liquidation remains available during general pause unless explicitly disabled
 
-See `docs/M2-M5.md`, `docs/M6.md`, `docs/M7.md`, `docs/M8.md`, and `docs/M9.md`.
+See `docs/M2-M5.md`, `docs/M6.md`, `docs/M7.md`, `docs/M8.md`, `docs/M9.md`, and `docs/M10.md`.
 
 ## M6 borrow path
 
@@ -120,7 +120,7 @@ Pyth valuation → risk engine → borrow capacity
 - Pyth data is never trusted from the frontend.
 - USDG is required to use 6 decimals so debt units match the protocol's USD micro-unit risk accounting.
 - Pool borrowing starts disabled after initialization and must be explicitly enabled by protocol authority.
-- The current `declare_id!` / `Anchor.toml` program address is a placeholder and must be replaced by the generated program keypair before deployment.
+- The current `declare_id!` / `Anchor.toml` address remains a placeholder until the stable program keypair is generated; the release workflow blocks deployment while they do not match.
 - M9 enforces unhealthy debt with fresh-Pyth liquidations, then absorbs collateral-exhausted losses through protocol reserves, dedicated insurance, and explicit bad-debt accounting.
 
 ## Local model checks
@@ -165,6 +165,50 @@ health <= 1.0
 
 The keeper under `keeper/` is dry-run by default; the Solana program remains the final authority for fresh price, health, close-factor and collateral checks.
 
-## Next
+### 🚧 Milestone 10 — release hardening + public Devnet
 
-10. hardening + public Devnet release
+Built in the release branch:
+
+- two-step protocol-authority transfer
+- two-step emergency-authority transfer
+- multisig-compatible authority model
+- explicit treasury rotation
+- deterministic adversarial state-machine tests
+- release secret/keypair leakage checks
+- canonical program-ID preflight
+- Devnet program-key generation/sync script
+- Devnet deploy script
+- mock asset + faucet bootstrap
+- market + Pyth configuration bootstrap
+- lending-pool initialization
+- public Devnet verification script
+- live borrow/repay E2E script
+- pool/bad-debt monitoring process
+- manual GitHub Actions Devnet deployment workflow
+- SBF build gate in CI
+
+The only part that cannot be completed from source code alone is the chain transaction itself: a funded Devnet deployer keypair and the stable program keypair must be provided as secrets. No private key is committed to this repository.
+
+See `docs/M10.md` for the release runbook.
+
+## Release commands
+
+```bash
+cp config/devnet.example.json config/devnet.local.json
+# fill verified Pyth feed IDs + Devnet price feed accounts
+export ANCHOR_WALLET=/secure/path/devnet-deployer.json
+
+./scripts/devnet/prepare-program.sh
+# commit the program ID produced by anchor keys sync, then securely back up the keypair
+./scripts/devnet/deploy.sh
+npm run devnet:bootstrap
+npm run devnet:verify
+npm run devnet:e2e
+npm run devnet:monitor
+```
+
+## Status
+
+**Milestones 1–10 source/release engineering: built.**
+
+**Public Devnet chain deployment: credential-gated** until the canonical program keypair and funded Devnet deployer are supplied.
