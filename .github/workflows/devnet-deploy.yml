@@ -34,10 +34,13 @@ jobs:
       - name: Add Solana to PATH
         run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
 
-      - name: Prime SBF platform tools v1.57
+      - name: Install modern cargo-build-sbf
+        run: cargo install cargo-build-sbf --version 4.1.0 --locked
+
+      - name: Build SBF with platform-tools v1.57
         run: |
-          cd programs/forty_four_milady
-          cargo build-sbf --tools-version v1.57
+          PATH="$HOME/.cargo/bin:$PATH" cargo-build-sbf --version
+          PATH="$HOME/.cargo/bin:$PATH" cargo-build-sbf --tools-version v1.57 --manifest-path programs/forty_four_milady/Cargo.toml
 
       - name: Install Anchor 0.31.1
         run: |
@@ -72,8 +75,8 @@ jobs:
           grep -q "forty_four_milady = \"$EXPECTED\"" Anchor.toml || (echo "Anchor.toml program id does not match PROGRAM_KEYPAIR_JSON: $EXPECTED" && exit 1)
           REQUIRE_NON_PLACEHOLDER_ID=1 npm run release:check
 
-      - name: Build SBF
-        run: anchor build
+      - name: Build SBF + IDL
+        run: PATH="$HOME/.cargo/bin:$HOME/.avm/bin:$PATH" anchor build
 
       - name: Deploy program
         run: anchor deploy
