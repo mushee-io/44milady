@@ -34,8 +34,10 @@ jobs:
       - name: Add Solana to PATH
         run: echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
 
-      - name: Install current SBF platform tools
-        run: cargo build-sbf --tools-version v1.57 --install-only
+      - name: Prime SBF platform tools v1.57
+        run: |
+          cd programs/forty_four_milady
+          cargo build-sbf --tools-version v1.57
 
       - name: Install Anchor 0.31.1
         run: |
