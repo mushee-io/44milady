@@ -6,7 +6,7 @@ resolution = true
 skip-lint = false
 
 [programs.devnet]
-forty_four_milady = "7ahY74GVSGRf9sDXFPtX6EnynoxWz2myNijQd7MPH5vF"
+forty_four_milady = "BS3vTdhrkK5zHchx92PFGeodckt1dLzf7i9uJyEsmZst"
 
 [registry]
 url = "https://api.apr.dev"
