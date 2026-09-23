@@ -2,7 +2,11 @@
   "name": "forty-four-milady",
   "private": true,
   "version": "0.2.0",
-  "workspaces": ["app", "sdk", "keeper"],
+  "workspaces": [
+    "app",
+    "sdk",
+    "keeper"
+  ],
   "scripts": {
     "dev": "npm --workspace app run dev",
     "build:web": "npm --workspace app run build",
@@ -10,5 +14,10 @@
     "test:model": "node scripts/model-check.mjs",
     "test:keeper": "npm --workspace keeper test",
     "test": "npm run test:structure && npm run test:model && npm run test:keeper"
+  },
+  "dependencies": {
+    "@pythnetwork/hermes-client": "3.1.0",
+    "@pythnetwork/pyth-solana-receiver": "0.16.0",
+    "@pythnetwork/solana-utils": "0.6.0"
   }
 }
