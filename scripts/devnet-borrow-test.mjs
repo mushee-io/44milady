@@ -5,7 +5,6 @@ import crypto from "node:crypto";
 import { Wallet } from "@coral-xyz/anchor";
 import { HermesClient } from "@pythnetwork/hermes-client";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
-import { sendTransactions } from "@pythnetwork/solana-utils";
 import {
   Connection, Keypair, PublicKey, TransactionInstruction,
 } from "@solana/web3.js";
@@ -108,7 +107,7 @@ const txs=await builder.buildVersionedTransactions({
 });
 
 console.log("Sending Pyth update + borrow sequence...");
-const signatures=await sendTransactions(txs,connection,wallet,6);
+const signatures=await receiver.provider.sendAll(txs,{preflightCommitment:"confirmed",commitment:"confirmed"});
 console.log("Transactions:",signatures);
 
 const afterCredit=await connection.getAccountInfo(credit,"confirmed");
