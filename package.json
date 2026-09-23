@@ -13,7 +13,8 @@
     "test:structure": "node scripts/check-structure.mjs",
     "test:model": "node scripts/model-check.mjs",
     "test:keeper": "npm --workspace keeper test",
-    "test": "npm run test:structure && npm run test:model && npm run test:keeper"
+    "test": "npm run test:structure && npm run test:model && npm run test:keeper",
+    "postinstall": "node scripts/fix-pyth-jito.mjs"
   },
   "dependencies": {
     "@pythnetwork/hermes-client": "3.1.0",
