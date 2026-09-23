@@ -26,25 +26,42 @@ for p in "${CANDIDATES[@]}"; do
 done
 if [ -z "$SOLANA3" ]; then SOLANA3="$(command -v solana)"; fi
 
-echo "Using $("$SOLANA3" --version)"
 PROGRAM_ID="$(solana-keygen pubkey "$KEYPAIR")"
+PROGRAM_SIZE="$(stat -c %s "$SO")"
+# UpgradeableLoader ProgramData metadata is 45 bytes in addition to the bytecode.
+PROGRAMDATA_SIZE=$((PROGRAM_SIZE + 45))
+
+echo "Using: $("$SOLANA3" --version)"
 echo "Program ID: $PROGRAM_ID"
 echo "Wallet: $("$SOLANA3" address)"
-echo "Balance before funding: $("$SOLANA3" balance --url devnet)"
+echo "Binary bytes: $PROGRAM_SIZE"
+echo "ProgramData bytes: $PROGRAMDATA_SIZE"
 
-# Large upgradeable programs need several Devnet SOL for rent.
-# Try to top up automatically; rate limits are non-fatal and deployment will report any remaining shortage.
-for i in 1 2 3; do
-  BAL="$("$SOLANA3" balance --url devnet 2>/dev/null | awk '{print $1}')"
-  if awk "BEGIN {exit !($BAL >= 6.5)}"; then break; fi
-  echo "Airdrop attempt $i..."
-  "$SOLANA3" airdrop 2 --url devnet || true
-  sleep 6
-done
+BAL_SOL="$("$SOLANA3" balance --url devnet | awk '{print $1}')"
+RENT_SOL="$("$SOLANA3" rent "$PROGRAMDATA_SIZE" --url devnet | awk '{print $1}')"
+# Reserve a small amount for the program account and deployment transaction fees.
+SAFETY_SOL="0.10"
+NEEDED_SOL="$(awk -v r="$RENT_SOL" -v s="$SAFETY_SOL" 'BEGIN { printf "%.9f", r+s }')"
 
-echo "Balance before deploy: $("$SOLANA3" balance --url devnet)"
-echo "Deploying 44 Milady..."
-"$SOLANA3" program deploy "$SO" --program-id "$KEYPAIR" --url devnet
+echo
+echo "SAFE PREFLIGHT"
+echo "Current balance : $BAL_SOL SOL"
+echo "ProgramData rent: $RENT_SOL SOL"
+echo "Fee reserve     : $SAFETY_SOL SOL"
+echo "Required target : $NEEDED_SOL SOL"
+
+if ! awk -v b="$BAL_SOL" -v n="$NEEDED_SOL" 'BEGIN { exit !(b >= n) }'; then
+  SHORT="$(awk -v b="$BAL_SOL" -v n="$NEEDED_SOL" 'BEGIN { printf "%.9f", n-b }')"
+  echo
+  echo "STOPPED BEFORE DEPLOYMENT."
+  echo "No deployment transaction was sent."
+  echo "Short by approximately: $SHORT SOL"
+  exit 3
+fi
+
+echo
+echo "Preflight PASS. Deploying with exact max-len=$PROGRAM_SIZE."
+"$SOLANA3" program deploy "$SO"   --program-id "$KEYPAIR"   --max-len "$PROGRAM_SIZE"   --url devnet
 
 echo
 echo "VERIFYING..."
