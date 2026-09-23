@@ -38,7 +38,7 @@ echo "Binary bytes: $PROGRAM_SIZE"
 echo "ProgramData bytes: $PROGRAMDATA_SIZE"
 
 BAL_SOL="$("$SOLANA3" balance --url devnet | awk '{print $1}')"
-RENT_SOL="$("$SOLANA3" rent "$PROGRAMDATA_SIZE" --url devnet | awk '{print $1}')"
+RENT_SOL="$("$SOLANA3" rent "$PROGRAMDATA_SIZE" --url devnet | awk '{for(i=1;i<=NF;i++) if($i ~ /^[0-9]+([.][0-9]+)?$/){print $i; exit}}')"
 # Reserve a small amount for the program account and deployment transaction fees.
 SAFETY_SOL="0.10"
 NEEDED_SOL="$(awk -v r="$RENT_SOL" -v s="$SAFETY_SOL" 'BEGIN { printf "%.9f", r+s }')"
