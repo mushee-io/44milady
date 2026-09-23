@@ -1,7 +1,7 @@
 use anchor_lang::prelude::*;
 use anchor_spl::token_interface::{self, CloseAccount, Mint, MintTo, TokenAccount, TokenInterface, TransferChecked};
 
-declare_id!("7ahY74GVSGRf9sDXFPtX6EnynoxWz2myNijQd7MPH5vF");
+declare_id!("BS3vTdhrkK5zHchx92PFGeodckt1dLzf7i9uJyEsmZst");
 
 pub const PROTOCOL_SEED: &[u8] = b"protocol";
 pub const MARKET_SEED: &[u8] = b"market";
