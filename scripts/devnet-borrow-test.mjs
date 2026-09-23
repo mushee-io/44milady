@@ -6,7 +6,7 @@ import { Wallet } from "@coral-xyz/anchor";
 import { HermesClient } from "@pythnetwork/hermes-client";
 import { PythSolanaReceiver } from "@pythnetwork/pyth-solana-receiver";
 import {
-  Connection, Keypair, PublicKey, TransactionInstruction,
+  Connection, Keypair, PublicKey, Transaction, TransactionInstruction, sendAndConfirmTransaction,
 } from "@solana/web3.js";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
@@ -23,14 +23,14 @@ if(!fs.existsSync(statePath)) throw new Error("Missing target/devnet/state.json"
 const state=JSON.parse(fs.readFileSync(statePath,"utf8"));
 
 function disc(name){ return crypto.createHash("sha256").update("global:"+name).digest().subarray(0,8); }
-function u64(n){ const b=Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; }
+function u16(n){ const b=Buffer.alloc(2); b.writeUInt16LE(n); return b; }\nfunction u32(n){ const b=Buffer.alloc(4); b.writeUInt32LE(n); return b; }\nfunction u64(n){ const b=Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; }\nfunction bool(v){ return Buffer.from([v?1:0]); }\nfunction feed32(hex){ return Buffer.from(hex.replace(/^0x/,""),"hex"); }
 
 const protocol=new PublicKey(state.protocol);
 const pool=new PublicKey(state.lendingPool);
 const liquidityVault=new PublicKey(state.liquidityVault);
 const usdg=new PublicKey(state.mints.usdg);
 const nvdaxMarket=new PublicKey(state.markets.nvdax.market);
-const nvdaxFeed="0x"+state.markets.nvdax.feedId;
+let nvdaxFeed="0x"+state.markets.nvdax.feedId;
 const usdgAta=new PublicKey("DVwL3qr226SQJTwTYVgrhWTKSoqj77XULbiwZcJg4td4");
 const credit=new PublicKey("4rwvt4XXsrZEBMWLjRGuzQRnZ28Ts6rMVU9XVLsy33Yp");
 
@@ -44,12 +44,27 @@ if(currentDebt>0n){
 }
 
 const apiKey=process.env.PYTH_API_KEY || process.env.HERMES_ACCESS_TOKEN || "";
+if(!apiKey){
+  console.error("PYTH_API_KEY is not set. No Solana transaction sent.");
+  process.exit(2);
+}
+
+const feedRows=await fetch("https://hermes.pyth.network/v2/price_feeds?query=NVDA&asset_type=equity").then(r=>{
+  if(!r.ok) throw new Error("Pyth feed discovery failed: "+r.status);
+  return r.json();
+});
+const equity=feedRows.find(x=>x?.attributes?.symbol==="Equity.US.NVDA/USD")
+  ?? feedRows.find(x=>String(x?.attributes?.symbol||"").includes("NVDA"));
+if(!equity?.id) throw new Error("Pyth NVDA equity feed not found");
+nvdaxFeed="0x"+equity.id;
+console.log("Using Pyth equity feed:",equity.attributes?.symbol||"NVDA/USD",nvdaxFeed);
+
 const hermes=new HermesClient(
   "https://pyth.dourolabs.app/hermes",
-  apiKey ? {accessToken:apiKey} : {},
+  {accessToken:apiKey},
 );
 
-console.log("Fetching fresh Pyth NVDAx update...");
+console.log("Fetching fresh Pyth NVDA/USD update...");
 let response;
 try{
   response=await hermes.getLatestPriceUpdates([nvdaxFeed],{encoding:"base64"});
@@ -68,7 +83,7 @@ const collateralUsd=10*px;
 const borrowUsd=Math.max(1,Math.min(500,Math.floor(collateralUsd*0.20)));
 const borrowRaw=BigInt(borrowUsd)*1_000_000n;
 
-console.log("Fresh NVDAx price:",px,"USD");
+console.log("Fresh NVDA/USD price:",px,"USD");
 console.log("10 NVDAx collateral value:",collateralUsd.toFixed(2),"USD");
 console.log("Planned test borrow:",borrowUsd,"USDG (20% of collateral value, capped at 500)");
 
