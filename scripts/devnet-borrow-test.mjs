@@ -23,7 +23,11 @@ if(!fs.existsSync(statePath)) throw new Error("Missing target/devnet/state.json"
 const state=JSON.parse(fs.readFileSync(statePath,"utf8"));
 
 function disc(name){ return crypto.createHash("sha256").update("global:"+name).digest().subarray(0,8); }
-function u16(n){ const b=Buffer.alloc(2); b.writeUInt16LE(n); return b; }\nfunction u32(n){ const b=Buffer.alloc(4); b.writeUInt32LE(n); return b; }\nfunction u64(n){ const b=Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; }\nfunction bool(v){ return Buffer.from([v?1:0]); }\nfunction feed32(hex){ return Buffer.from(hex.replace(/^0x/,""),"hex"); }
+function u16(n){ const b=Buffer.alloc(2); b.writeUInt16LE(n); return b; }
+function u32(n){ const b=Buffer.alloc(4); b.writeUInt32LE(n); return b; }
+function u64(n){ const b=Buffer.alloc(8); b.writeBigUInt64LE(BigInt(n)); return b; }
+function bool(v){ return Buffer.from([v?1:0]); }
+function feed32(hex){ return Buffer.from(hex.replace(/^0x/,""),"hex"); }
 
 const protocol=new PublicKey(state.protocol);
 const pool=new PublicKey(state.lendingPool);
@@ -75,6 +79,41 @@ try{
   process.exit(2);
 }
 if(!response?.binary?.data?.length) throw new Error("Hermes returned no update data");
+
+const storedFeed=("0x"+state.markets.nvdax.feedId).toLowerCase();
+if(storedFeed!==nvdaxFeed.toLowerCase()){
+  console.log("Updating NVDAx market oracle to the entitled NVDA equity feed...");
+  const updateIx=new TransactionInstruction({
+    programId:PROGRAM_ID,
+    keys:[
+      {pubkey:payer.publicKey,isSigner:true,isWritable:false},
+      {pubkey:protocol,isSigner:false,isWritable:false},
+      {pubkey:nvdaxMarket,isSigner:false,isWritable:true},
+    ],
+    data:Buffer.concat([
+      disc("update_market"),
+      feed32(nvdaxFeed),
+      u16(6000),
+      u16(7500),
+      u16(500),
+      u16(1000),
+      u32(300),
+      u64(1_000_000n*1_000_000n),
+      u64(0),
+      bool(true),
+    ]),
+  });
+  const updateSig=await sendAndConfirmTransaction(
+    connection,
+    new Transaction().add(updateIx),
+    [payer],
+    {commitment:"confirmed"}
+  );
+  console.log("update_market NVDAx: PASS",updateSig);
+  state.markets.nvdax.feedId=nvdaxFeed.replace(/^0x/,"");
+  state.markets.nvdax.pythSymbol=equity.attributes?.symbol||"Equity.US.NVDA/USD";
+  fs.writeFileSync(statePath,JSON.stringify(state,null,2));
+}
 
 const parsed=response.parsed?.find(x=>("0x"+x.id.replace(/^0x/,""))===nvdaxFeed) ?? response.parsed?.[0];
 if(!parsed?.price) throw new Error("Hermes response missing parsed NVDAx price");
